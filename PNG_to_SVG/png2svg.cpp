@@ -209,9 +209,11 @@ bool ImgTool::exportSVG(std::string path, unsigned outputType)
     }
 
     // Alert.
-    int limit = 1024;
+    int limit = 256;
     if ((currentImage.height * currentImage.width) > (limit * limit)) {
-        std::cerr << "Image processing can take a long time!\n";
+        std::cerr << "Algorithm Limit: PNG(" << limit << " x " << limit << " px). "
+                  << "Image(" << currentImage.filename << ") cannot be converted to SVG!\n";
+        return false;
     }
 
     std::string svg{};

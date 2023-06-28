@@ -11,11 +11,12 @@ int main()
 
     ImgTool img;
     if (img.load(input)) {
-        img.summary();
         img.exportSVG(output1, img.PIXEL);
         img.exportSVG(output2, img.GROUP);
+        img.summary();
     } else {
         std::cerr << "Error reading file!\n";
+        img.summary();
     }
 
     return 0;
