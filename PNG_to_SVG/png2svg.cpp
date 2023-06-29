@@ -208,21 +208,13 @@ bool ImgTool::exportSVG(std::string path, unsigned outputType)
         return false;
     }
 
-    // Alert.
-    int limit = 256;
-    if ((currentImage.height * currentImage.width) > (limit * limit)) {
-        std::cerr << "Algorithm Limit: PNG(" << limit << " x " << limit << " px). "
-                  << "Image(" << currentImage.filename << ") cannot be converted to SVG!\n";
-        return false;
-    }
-
     std::string svg{};
     switch (outputType) {
     case PIXEL:
         svg = svgPixel();
         break;
     case GROUP:
-        svg = svgRegions();
+        svg = svgGroupPixel();
         break;
     default:
         break;
@@ -233,6 +225,17 @@ bool ImgTool::exportSVG(std::string path, unsigned outputType)
 
 std::string ImgTool::svgPixel()
 {
+    // Alert.
+    int limit = 256 * 256;
+    if ((currentImage.height * currentImage.width) > limit) {
+        std::cerr << "Function       : svgPixel()\n"
+                  << "Algorithm Limit: " << limit << " px\n"
+                  << "Image          : " << currentImage.filename
+                  << " (" << currentImage.width * currentImage.height << " px). "
+                  << "Converting to SVG is not recommended!\n";
+        return {};
+    }
+
     // Square dimensions.
     int width  = 1;
     int height = 1;
@@ -264,8 +267,19 @@ std::string ImgTool::svgPixel()
                     SVG::Metadata());
 }
 
-std::string ImgTool::svgRegions()
+std::string ImgTool::svgGroupPixel()
 {
+    // Alert.
+    int limit = 256 * 256;
+    if ((currentImage.height * currentImage.width) > limit) {
+        std::cerr << "Function       : svgGroupPixel()\n"
+                  << "Algorithm Limit: " << limit << " px\n"
+                  << "Image          : " << currentImage.filename
+                  << " (" << currentImage.width * currentImage.height << " px). "
+                  << "Converting to SVG is not recommended!\n";
+        return {};
+    }
+
     // Dimensions.
     int width  = 1;
     int height = 1;

@@ -129,7 +129,7 @@ public:
         try {
             std::time_t t = std::time(nullptr);
             std::tm *const pTm = std::localtime(&t);
-            now = std::to_string(1900 + + pTm->tm_year);
+            now = std::to_string(1900 + pTm->tm_year);
         } catch (...) {
            // pass
         }
@@ -268,7 +268,7 @@ public:
     static bool save(const std::string& text, std::string path = "")
     {
         if (text.empty()) {
-            std::cerr << "SVG empty!\n";
+            std::cerr << "Empty SVG text! Export failed!\n";
             return false;
         }
 

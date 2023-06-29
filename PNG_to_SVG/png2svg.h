@@ -60,7 +60,7 @@ private:
         unsigned int bitDepth{0};           // number of bits per sample or per palette index (not per pixel).
         unsigned int colorType{0};          // image type (0:Grayscale, 2:Truecolor, 3:Indexed-color, 4:Grayscale Alpha, 6:Truecolor Alpha).
         unsigned int compression{0};        // compression method.
-        unsigned int filter{0};             // filter method..
+        unsigned int filter{0};             // filter method.
         unsigned int interlace{0};          // interlace method.
         std::vector<RGBA> image{};          // image pixel translated into RGBA.
 
@@ -77,7 +77,7 @@ private:
     std::string svgPixel();
 
     // Process pixel in groups.
-    std::string svgRegions();
+    std::string svgGroupPixel();
 
     // Recursive function.
     void connect(unsigned row, unsigned col, std::string rgbaHex);
