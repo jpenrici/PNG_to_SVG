@@ -27,8 +27,9 @@ public:
     ~ImgTool();
 
     enum Type {
-        PIXEL, // Converts pixel to small squares.
-        GROUP  // Converts regions with equal and close pixels into group of small squares.
+        PIXEL,      // Converts pixel to small squares.
+        GROUP,      // Converts regions with equal and close pixels into group of small squares.
+        REGIONS
     };
 
     // Export processed data in SVG.
@@ -68,16 +69,23 @@ private:
     };
 
     IMG currentImage;
+    long long int limit = 256 * 256;
 
     // Temporary storage.
     std::vector<bool> visited{};
     std::vector<SVG::Point> connected{};
 
     // Process separate pixels.
+    // Each pixel is converted to a square in SVG.
     std::string svgPixel();
 
     // Process pixel in groups.
+    // Searches for identical pixels to group using recursive algorithm.
+    // Each pixel is converted to a square in SVG.
     std::string svgGroupPixel();
+
+    // Process pixel in regions.
+    std::string svgRegions();
 
     // Recursive function.
     void connect(unsigned row, unsigned col, std::string rgbaHex);

@@ -208,6 +208,15 @@ bool ImgTool::exportSVG(std::string path, unsigned outputType)
         return false;
     }
 
+    // Alert.
+    if ((currentImage.height * currentImage.width) > limit) {
+        std::cerr << "Algorithm Limit: " << limit << " px\n"
+                  << "Image          : " << currentImage.filename
+                  << " (" << currentImage.width * currentImage.height << " px). "
+                  << "Converting to SVG is not recommended!\n";
+        return false;
+    }
+
     std::string svg{};
     switch (outputType) {
     case PIXEL:
@@ -216,6 +225,8 @@ bool ImgTool::exportSVG(std::string path, unsigned outputType)
     case GROUP:
         svg = svgGroupPixel();
         break;
+    case REGIONS:
+        svg = svgRegions();
     default:
         break;
     }
@@ -225,41 +236,32 @@ bool ImgTool::exportSVG(std::string path, unsigned outputType)
 
 std::string ImgTool::svgPixel()
 {
-    // Alert.
-    int limit = 256 * 256;
-    if ((currentImage.height * currentImage.width) > limit) {
-        std::cerr << "Function       : svgPixel()\n"
-                  << "Algorithm Limit: " << limit << " px\n"
-                  << "Image          : " << currentImage.filename
-                  << " (" << currentImage.width * currentImage.height << " px). "
-                  << "Converting to SVG is not recommended!\n";
-        return {};
-    }
-
     // Square dimensions.
     int width  = 1;
     int height = 1;
     // Construct SVG.
-    std::string figure = "";
+    std::string figure{};
     for (unsigned row = 0; row < currentImage.height; row++) {
         for (unsigned col = 0; col < currentImage.width; col++) {
             int index = row * currentImage.width + col;
             auto pixel = currentImage.image[index];
             auto color = SVG::RGB2HEX(pixel.R, pixel.G, pixel.B);
-            figure += SVG::polyline(SVG::Shape(
-                "PX_" + std::to_string(index),      // name.
-                color,                              // fill color.
-                BLACK,                              // stroke color.
-                pixel.A,                            // fill opacity.
-                0.0,                                // stroke width
-                255,                                // stroke opacity
-                std::vector<SVG::Point>{            // points.
-                    SVG::Point(col * width, row * height),
-                    SVG::Point(col * width + width, row * height),
-                    SVG::Point(col * width + width, row * height + height),
-                    SVG::Point(col * width, row * height + height),
-                    SVG::Point(col * width, row * height)
-                }));
+            if (pixel.A > 0) {
+                figure += SVG::polyline(SVG::Shape(
+                    "PX_" + std::to_string(index),      // name.
+                    color,                              // fill color.
+                    BLACK,                              // stroke color.
+                    pixel.A,                            // fill opacity.
+                    0.0,                                // stroke width
+                    255,                                // stroke opacity
+                    std::vector<SVG::Point>{            // points.
+                        SVG::Point(col * width, row * height),
+                        SVG::Point(col * width + width, row * height),
+                        SVG::Point(col * width + width, row * height + height),
+                        SVG::Point(col * width, row * height + height),
+                        SVG::Point(col * width, row * height)
+                    }));
+            }
         }
     }
 
@@ -269,29 +271,18 @@ std::string ImgTool::svgPixel()
 
 std::string ImgTool::svgGroupPixel()
 {
-    // Alert.
-    int limit = 256 * 256;
-    if ((currentImage.height * currentImage.width) > limit) {
-        std::cerr << "Function       : svgGroupPixel()\n"
-                  << "Algorithm Limit: " << limit << " px\n"
-                  << "Image          : " << currentImage.filename
-                  << " (" << currentImage.width * currentImage.height << " px). "
-                  << "Converting to SVG is not recommended!\n";
-        return {};
-    }
-
     // Dimensions.
     int width  = 1;
     int height = 1;
     // Construct SVG.
     int count = 0;
-    std::string figure = "";
+    std::string figure{};
     visited = std::vector<bool>(currentImage.height * currentImage.width, false);
     for (unsigned row = 0; row < currentImage.height; row++) {
         for (unsigned col = 0; col < currentImage.width; col++) {
             if (!visited[row * currentImage.width + col]) {
-                connected.clear();
                 auto pixel = currentImage.image[row * currentImage.width + col];
+                connected.clear();
                 connect(row, col, SVG::RGBA2HEX(pixel.R, pixel.G, pixel.B, pixel.A));
                 std::string elements{};
                 for (auto& item : connected) {
@@ -324,6 +315,13 @@ std::string ImgTool::svgGroupPixel()
                     SVG::Metadata());
 }
 
+std::string ImgTool::svgRegions()
+{
+    // TO DO!
+
+    return {};
+}
+
 void ImgTool::connect(unsigned row, unsigned col, std::string rgbaHex)
 {
     if (row < 0 || row > currentImage.height || col < 0 || col > currentImage.width) {
@@ -335,6 +333,9 @@ void ImgTool::connect(unsigned row, unsigned col, std::string rgbaHex)
     }
 
     auto pixel = currentImage.image[row * currentImage.width + col];
+    if (pixel.A == 0) {
+        return;
+    }
     if (rgbaHex != SVG::RGBA2HEX(pixel.R, pixel.G, pixel.B, pixel.A)) {
         return;
     }
