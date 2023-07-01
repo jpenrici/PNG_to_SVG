@@ -88,5 +88,5 @@ private:
     std::string svgRegions();
 
     // Recursive function.
-    void connect(unsigned row, unsigned col, std::string rgbaHex);
+    void connect(unsigned row, unsigned col, std::string rgbaHex, bool eightDirectional = false);
 };

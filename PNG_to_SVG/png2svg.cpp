@@ -282,15 +282,14 @@ std::string ImgTool::svgGroupPixel()
         for (unsigned col = 0; col < currentImage.width; col++) {
             if (!visited[row * currentImage.width + col]) {
                 auto pixel = currentImage.image[row * currentImage.width + col];
+                auto color = SVG::RGB2HEX(pixel.R, pixel.G, pixel.B);
                 connected.clear();
-                connect(row, col, SVG::RGBA2HEX(pixel.R, pixel.G, pixel.B, pixel.A));
+                connect(row, col, SVG::RGBA2HEX(pixel.R, pixel.G, pixel.B, pixel.A), true);
                 std::string elements{};
                 for (auto& item : connected) {
-                    auto index = item.y * currentImage.width + item.x;
-                    auto pixel = currentImage.image[index];
-                    auto color = SVG::RGB2HEX(pixel.R, pixel.G, pixel.B);
+                    int index = item.y * currentImage.width + item.x;
                     elements += SVG::polyline(SVG::Shape(
-                        "PX_" + std::to_string((int)index), // name.
+                        "PX_" + std::to_string(index),      // name.
                         color,                              // fill color.
                         BLACK,                              // stroke color.
                         pixel.A,                            // fill opacity.
@@ -322,7 +321,7 @@ std::string ImgTool::svgRegions()
     return {};
 }
 
-void ImgTool::connect(unsigned row, unsigned col, std::string rgbaHex)
+void ImgTool::connect(unsigned row, unsigned col, std::string rgbaHex, bool eightDirectional)
 {
     if (row < 0 || row > currentImage.height || col < 0 || col > currentImage.width) {
         return;
@@ -345,14 +344,16 @@ void ImgTool::connect(unsigned row, unsigned col, std::string rgbaHex)
     visited[row * currentImage.width + col] = true;
 
     // Recursion
-    connect(row, col + 1, rgbaHex);      // right
-    connect(row + 1, col, rgbaHex);      // down
-    connect(row, col - 1, rgbaHex);      // left
-    connect(row - 1, col, rgbaHex);      // up
-    connect(row + 1, col + 1, rgbaHex);  // right, down
-    connect(row + 1, col - 1, rgbaHex);  // left, down
-    connect(row - 1, col + 1, rgbaHex);  // right, up
-    connect(row - 1, col - 1, rgbaHex);  // left, up
+    connect(row, col + 1, rgbaHex, eightDirectional);          // right
+    connect(row + 1, col, rgbaHex, eightDirectional);          // down
+    connect(row, col - 1, rgbaHex, eightDirectional);          // left
+    connect(row - 1, col, rgbaHex, eightDirectional);          // up
+    if (eightDirectional) {
+        connect(row + 1, col + 1, rgbaHex, eightDirectional);  // right, down
+        connect(row + 1, col - 1, rgbaHex, eightDirectional);  // left, down
+        connect(row - 1, col + 1, rgbaHex, eightDirectional);  // right, up
+        connect(row - 1, col - 1, rgbaHex, eightDirectional);  // left, up
+    }
 }
 
 ImgTool::RGBA::RGBA(int r, int g, int b, int a)
