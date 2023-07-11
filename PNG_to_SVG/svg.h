@@ -77,6 +77,7 @@ public:
         double y = 0.0;
 
         Point(double x, double y) : x(x), y(y) {};
+        bool equal(Point p) { return x == p.x && y == p.y; }
         std::string toStr() { return std::to_string(x) + "," + std::to_string(y); }
     };
 

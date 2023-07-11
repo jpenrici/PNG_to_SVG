@@ -20,8 +20,7 @@
 #include <string>
 #include <vector>
 
-class ImgTool
-{
+class ImgTool {
 public:
     ImgTool();
     ~ImgTool();
@@ -29,7 +28,7 @@ public:
     enum Type {
         PIXEL,      // Converts pixel to small squares.
         GROUP,      // Converts regions with equal and close pixels into group of small squares.
-        REGIONS
+        REGIONS     // Experimental. Simple edge detection.
     };
 
     // Export processed data in SVG.
@@ -46,9 +45,11 @@ private:
     struct RGBA {
         int R{0}, G{0}, B{0}, A{0};
 
-        RGBA(){};
+        RGBA() {};
         RGBA(int r, int g, int b, int a);
 
+        bool empty();
+        bool equal(RGBA rgba);
         std::string toStr();
     };
 
@@ -71,9 +72,8 @@ private:
     IMG currentImage;
     long long int limit = 256 * 256;
 
-    // Temporary storage.
-    std::vector<bool> visited{};
-    std::vector<SVG::Point> connected{};
+    // Points to draw a pixel.
+    std::vector<SVG::Point> rect(SVG::Point origin, unsigned width, unsigned height);
 
     // Process separate pixels.
     // Each pixel is converted to a square in SVG.
@@ -85,8 +85,15 @@ private:
     std::string svgGroupPixel();
 
     // Process pixel in regions.
+    // Searches for identical pixels to group using recursive algorithm.
+    // Experimental. Simple algorithm for finding edges.
     std::string svgRegions();
 
     // Recursive function.
-    void connect(unsigned row, unsigned col, std::string rgbaHex, bool eightDirectional = false);
+    void connect(std::vector<SVG::Point>& connected,    // Temporary storage of nearby points.
+                 std::vector<RGBA>& image,              // Temporary matrix or image copy.
+                 unsigned rows, unsigned cols,          // Image vector size.
+                 unsigned row, unsigned col,            // Starting point.
+                 RGBA rgba,                             // Searched color.
+                 bool eightDirectional = false);        // Search movement in the matrix.
 };
