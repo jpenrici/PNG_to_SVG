@@ -1,5 +1,6 @@
 #include "png2svg.h"
 
+#include <algorithm>
 #include <math.h>
 #include <zlib.h>
 
@@ -221,7 +222,7 @@ bool ImgTool::exportSVG(std::string path, unsigned outputType)
     if ((currentImage.height * currentImage.width) > limit) {
         std::cerr << "Algorithm Limit: " << limit << " px\n"
                   << "Image          : " << currentImage.filename
-                  << " (" << currentImage.width *currentImage.height << " px). "
+                  << " (" << currentImage.width * currentImage.height << " px). "
                   << "Converting to SVG is not recommended!\n";
         return false;
     }
