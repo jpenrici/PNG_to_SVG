@@ -11,14 +11,13 @@
 
 #pragma once
 
-#include "svg.h"
+#include "svgToolBox.hpp"
 
-#include <cstring>
-#include <filesystem>
-#include <fstream>
-#include <iostream>
-#include <string>
-#include <vector>
+#define RGBA smalltoolbox::Color::RGBA
+
+using smalltoolbox::Point;
+using smalltoolbox::SVG;
+using smalltoolbox::IO;
 
 class ImgTool {
 public:
@@ -42,17 +41,6 @@ public:
 
 private:
 
-    struct RGBA {
-        int R{0}, G{0}, B{0}, A{0};
-
-        RGBA() {};
-        RGBA(int r, int g, int b, int a);
-
-        bool empty();
-        bool equal(RGBA rgba);
-        std::string toStr();
-    };
-
     struct IMG {
         bool status{false};                 // state of image preparation (RGBA vector).
         std::string path{};                 // path of input file.
@@ -73,7 +61,7 @@ private:
     long long int limit = 256 * 256;
 
     // Points to draw a pixel.
-    std::vector<SVG::Point> rect(SVG::Point origin, unsigned width, unsigned height);
+    std::vector<Point> rect(Point origin, unsigned width, unsigned height);
 
     // Process separate pixels.
     // Each pixel is converted to a square in SVG.
@@ -90,10 +78,10 @@ private:
     std::string svgRegions();
 
     // Recursive function.
-    void connect(std::vector<SVG::Point>& connected,    // Temporary storage of nearby points.
-                 std::vector<RGBA>& image,              // Temporary matrix or image copy.
-                 unsigned rows, unsigned cols,          // Image vector size.
-                 unsigned row, unsigned col,            // Starting point.
-                 RGBA rgba,                             // Searched color.
-                 bool eightDirectional = false);        // Search movement in the matrix.
+    void connect(std::vector<Point> &connected,     // Temporary storage of nearby points.
+                 std::vector<RGBA> &image,          // Temporary matrix or image copy.
+                 unsigned rows, unsigned cols,      // Image vector size.
+                 unsigned row, unsigned col,        // Starting point.
+                 RGBA rgba,                         // Searched color.
+                 bool eightDirectional = false);    // Search movement in the matrix.
 };

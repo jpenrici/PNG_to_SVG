@@ -6,13 +6,13 @@ In this algorithm the PNG file is loaded, processed and exported SVG for use in 
 ## Test
 
 - Linux
-- Debian 11
+- Debian 12
 
 ## Requirements
 
 - zlib1g
-- gcc 10.2.1
-- cmake 3.18.4
+- gcc 12.2.0
+- cmake 3.25.1
 
 ## References
 

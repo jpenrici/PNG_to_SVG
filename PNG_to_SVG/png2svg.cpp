@@ -1,7 +1,5 @@
 #include "png2svg.h"
 
-#include <algorithm>
-#include <math.h>
 #include <zlib.h>
 
 ImgTool::ImgTool()
@@ -222,7 +220,7 @@ bool ImgTool::exportSVG(std::string path, unsigned outputType)
     if ((currentImage.height * currentImage.width) > limit) {
         std::cerr << "Algorithm Limit: " << limit << " px\n"
                   << "Image          : " << currentImage.filename
-                  << " (" << currentImage.width * currentImage.height << " px). "
+                  << " (" << currentImage.width *currentImage.height << " px). "
                   << "Converting to SVG is not recommended!\n";
         return false;
     }
@@ -250,7 +248,7 @@ bool ImgTool::exportSVG(std::string path, unsigned outputType)
                   << "Result: " << path << '\n';
     }
 
-    return SVG::save(svg, path);
+    return IO::save(svg, path);
 }
 
 std::string ImgTool::svgPixel()
@@ -269,13 +267,13 @@ std::string ImgTool::svgPixel()
             auto pixel = image[index];
             if (pixel.A > 0) {
                 figure += SVG::polyline(SVG::Shape(
-                    "PX_" + std::to_string(index),                  // name.
-                    SVG::RGB2HEX(pixel.R, pixel.G, pixel.B),        // fill color.
-                    BLACK,                                          // stroke color.
-                    pixel.A,                                        // fill opacity.
-                    0.0,                                            // stroke width
-                    255,                                            // stroke opacity
-                    rect(SVG::Point(col, row), width, height)));    // Points
+                                            "PX_" + std::to_string(index),             // name.
+                                            SVG::RGB2HEX(pixel.R, pixel.G, pixel.B),   // fill color.
+                                            SVG::BLACK,                                // stroke color.
+                                            0.0,                                       // stroke width
+                                            pixel.A,                                   // fill opacity.
+                                            255,                                       // stroke opacity
+                                            rect(Point(col, row), width, height)));    // Points
             }
         }
     }
@@ -299,19 +297,19 @@ std::string ImgTool::svgGroupPixel()
             auto index = row * cols + col;
             auto pixel = image[index];
             if (!pixel.empty()) {
-                std::vector<SVG::Point> connected;
+                std::vector<Point> connected;
                 connect(connected, image, rows, cols, row, col, pixel, true);
                 if (!connected.empty()) {
                     std::string elements{};
                     for (auto &item : connected) {
                         elements += SVG::polyline(SVG::Shape(
-                            "GPX_" + std::to_string(int(item.y * cols + item.x)), // name.
-                            SVG::RGB2HEX(pixel.R, pixel.G, pixel.B),              // fill color.
-                            BLACK,                                                // stroke color.
-                            pixel.A,                                              // fill opacity.
-                            0.0,                                                  // stroke width.
-                            255,                                                  // stroke opacity.
-                            rect(SVG::Point(item.x, item.y), width, height)));    // Points
+                                                      "GPX_" + item.toStr(),                    // name.
+                                                      SVG::RGB2HEX(pixel.R, pixel.G, pixel.B),  // fill color.
+                                                      SVG::BLACK,                               // stroke color.
+                                                      0.0,                                      // stroke width.
+                                                      pixel.A,                                  // fill opacity.
+                                                      255,                                      // stroke opacity.
+                                                      rect(item, width, height)));              // Points
                     }
                     if (!elements.empty()) {
                         figure += SVG::group("Group_" + std::to_string(count++), elements);
@@ -341,14 +339,14 @@ std::string ImgTool::svgRegions()
             auto index = row * cols + col;
             auto pixel = original[index];
             if (!original[index].empty()) {
-                std::vector<SVG::Point> connected;
+                std::vector<Point> connected;
                 connect(connected, original, rows, cols, row, col, pixel);
                 if (!connected.empty()) {
                     // Analyze Connected Points.
-                    SVG::Point first = connected.front();
+                    Point first = connected.front();
                     std::vector<int> matrix(rows * cols, 0);
                     for (auto item : connected) {
-                        matrix[item.y * cols + item.x] = 1;
+                        matrix[item.Y.value * cols + item.X.value] = 1;
                     }
                     // Find possible edges and gaps.
                     for (unsigned r = 0; r < rows; r++) {
@@ -461,18 +459,17 @@ std::string ImgTool::svgRegions()
                                     std::string elements{};
                                     for (auto &item : connected) {
                                         elements += SVG::polyline(SVG::Shape(
-                                            "RPX_" + std::to_string(int(item.y * cols + item.x)), // name.
-                                            SVG::RGB2HEX(pixel.R, pixel.G, pixel.B),              // fill color.
-                                            BLACK,                                                // stroke color.
-                                            pixel.A,                                              // fill opacity.
-                                            0.0,                                                  // stroke width.
-                                            255,                                                  // stroke opacity.
-                                            rect(SVG::Point(item.x, item.y), width, height)));    // Points
+                                                                      "RPX_" + item.toStr(),                    // name.
+                                                                      SVG::RGB2HEX(pixel.R, pixel.G, pixel.B),  // fill color.
+                                                                      SVG::BLACK,                               // stroke color.
+                                                                      0.0,                                      // stroke width.
+                                                                      pixel.A,                                  // fill opacity.
+                                                                      255,                                      // stroke opacity.
+                                                                      rect(item, width, height)));              // Points
                                     }
                                     if (!elements.empty()) {
                                         figure += SVG::group("Group_" + std::to_string(count++), elements);
                                     }
-
                                 }
                             }
                         }
@@ -485,7 +482,7 @@ std::string ImgTool::svgRegions()
     return SVG::svg(cols * width, rows * height, figure, SVG::Metadata());
 }
 
-void ImgTool::connect(std::vector<SVG::Point> &connected,
+void ImgTool::connect(std::vector<Point> &connected,
                       std::vector<RGBA> &image,
                       unsigned int rows, unsigned int cols,
                       unsigned int row, unsigned int col,
@@ -509,7 +506,7 @@ void ImgTool::connect(std::vector<SVG::Point> &connected,
     }
 
     // Update data
-    connected.push_back(SVG::Point(col, row));
+    connected.push_back(Point(col, row));
     image[row * cols + col] = RGBA();
 
     // Recursion
@@ -525,42 +522,14 @@ void ImgTool::connect(std::vector<SVG::Point> &connected,
     }
 }
 
-std::vector<SVG::Point> ImgTool::rect(SVG::Point origin, unsigned int width, unsigned int height)
+std::vector<Point> ImgTool::rect(Point origin, unsigned int width, unsigned int height)
 {
-    return std::vector<SVG::Point> {SVG::Point(origin.x * width, origin.y * height),
-        SVG::Point(origin.x * width + width, origin.y * height),
-        SVG::Point(origin.x * width + width, origin.y * height + height),
-        SVG::Point(origin.x * width, origin.y * height + height),
-        SVG::Point(origin.x * width, origin.y * height)
-    };
-}
-
-ImgTool::RGBA::RGBA(int r, int g, int b, int a)
-{
-    R = r < 0 ? 0 : r % 256;
-    G = g < 0 ? 0 : g % 256;
-    B = b < 0 ? 0 : b % 256;
-    A = a < 0 ? 0 : a % 256;
-}
-
-bool ImgTool::RGBA::empty()
-{
-    return R == 0 && G == 0 && B == 0 && A == 0;
-}
-
-bool ImgTool::RGBA::equal(RGBA rgba)
-{
-    return R == rgba.R && G == rgba.G && B == rgba.B && A == rgba.A;
-}
-
-std::string ImgTool::RGBA::toStr()
-{
-    return {
-        std::to_string(R) + "," +
-        std::to_string(G) + "," +
-        std::to_string(B) + "," +
-        std::to_string(A)
-    };
+    return std::vector<Point> {Point(origin.X.value * width, origin.Y.value * height),
+                               Point(origin.X.value * width + width, origin.Y.value * height),
+                               Point(origin.X.value * width + width, origin.Y.value * height + height),
+                               Point(origin.X.value * width, origin.Y.value * height + height),
+                               Point(origin.X.value * width, origin.Y.value * height)
+                              };
 }
 
 std::string ImgTool::IMG::toStr(bool imageData = true)

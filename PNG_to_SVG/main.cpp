@@ -18,4 +18,6 @@ int main()
         img.summary();
         std::cerr << "Error reading file!\n";
     }
+
+    return 0;
 }
