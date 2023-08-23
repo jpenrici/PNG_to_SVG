@@ -19,3 +19,9 @@ In this algorithm the PNG file is loaded, processed and exported SVG for use in 
 [SVG](https://www.w3.org/TR/SVG2/) : Documentation with W3C details and specifications.</br>
 [PNG](https://www.w3.org/TR/png/) : Documentation with W3C details and specifications.</br>
 [ZLIB](http://zlib.net/) : Library that implements the Deflate compression method.</br>
+
+## Display
+
+Result seen in Inkscape.<br>
+
+![display](https://github.com/jpenrici/PNG_to_SVG/blob/main/display/display_inkscape.png)
