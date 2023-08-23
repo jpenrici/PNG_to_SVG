@@ -565,7 +565,7 @@ auto ImgTool::rect(Point origin, unsigned int width, unsigned int height) -> Poi
 
 auto ImgTool::draw(std::string label, RGBA pixel, Points points) -> std::string
 {
-    return SVG::polyline(SVG::Shape(
+    return SVG::polyline(SVG::NormalShape(
                              label,                                     // name.
                              SVG::RGB2HEX(pixel.R, pixel.G, pixel.B),   // fill color.
                              SVG::BLACK,                                // stroke color.

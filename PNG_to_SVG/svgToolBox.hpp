@@ -1,3 +1,9 @@
+////////////////////////////////////////////////////////////////////////////////
+// svgToolBox.hpp
+// Small tools for building applications from SVG images.
+// 2023-08-23
+////////////////////////////////////////////////////////////////////////////////
+
 #ifndef SMALLTOOLBOX_H_
 #define SMALLTOOLBOX_H_
 
@@ -54,8 +60,7 @@ public:
     }
 
     // Replace all occurrences of the character with the string.
-    static auto replace(const std::string &str, char character,
-                        const std::string &strReplace) -> std::string
+    static auto replace(const std::string &str, char character, const std::string &strReplace) -> std::string
     {
         std::string result{};
         for (char characterTemp : str) {
@@ -66,8 +71,7 @@ public:
     }
 
     // Replace all occurrences of the character with another character.
-    static auto replace(const std::string &str, char character,
-                        char charReplace) -> std::string
+    static auto replace(const std::string &str, char character, char charReplace) -> std::string
     {
         return Text::replace(str, character, std::string{charReplace});
     }
@@ -307,8 +311,7 @@ public:
 
     // Compare groups (vector).
     template<typename T>
-    static auto equal(std::vector<T> group1, std::vector<T> group2,
-                      bool compareOrder = false) -> bool
+    static auto equal(std::vector<T> group1, std::vector<T> group2, bool compareOrder = false) -> bool
     {
         if (group1.size() != group2.size()) {
             return false;
@@ -487,6 +490,9 @@ public:
     // Axis
     Coordinate X, Y;
 
+    // Label
+    std::string label{"Point"};
+
     // Point (0, 0)
     Point() : X{0}, Y{0} {};
 
@@ -630,8 +636,7 @@ public:
 
     // Angle between three points.
     // Signal: True, respects the order of the vectors.
-    static auto angle(Point origin, Point first, Point second,
-                      bool signal = false) -> double
+    static auto angle(Point origin, Point first, Point second, bool signal = false) -> double
     {
         auto angle1 = origin.angle(first);
         auto angle2 = origin.angle(second);
@@ -661,8 +666,7 @@ public:
 
     // Position from angle and radius.
     // Current point as origin.
-    auto position(double angle, double horizontalRadius,
-                  double verticalRadius) const -> Point
+    auto position(double angle, double horizontalRadius, double verticalRadius) const -> Point
     {
         return {Math::cos(X.value, horizontalRadius, angle),
                 Math::sin(Y.value, verticalRadius, angle)};
@@ -785,7 +789,7 @@ public:
             return points;
         }
 
-        std::map<double, Numbers > mapPoint;
+        std::map<double, Numbers> mapPoint;
 
         for (auto point : points) {
             auto key = X_axis ? point.X.value : point.Y.value;
@@ -824,7 +828,7 @@ public:
         }
 
         // Map : Angle x Point.
-        std::map<double, Points > mapPoint;
+        std::map<double, Points> mapPoint;
 
         for (auto value : points) {
             auto key = center.angle(value);
@@ -900,6 +904,8 @@ class Base {
 public:
 
     Point first, second, third, fourth;
+
+    std::string label{"Base"};
 
     Base() = default;
     ~Base() = default;
@@ -1091,6 +1097,7 @@ public:
     auto setup(Point first, Point second = Origin) -> Points
     {
         Base::setup({first, second});
+        label = "Line";
 
         return points();
     }
@@ -1205,6 +1212,7 @@ public:
     auto setup(Point first, Point second, Point third) -> Points
     {
         Base::setup({first, second, third});
+        label = "Triangle";
 
         return points();
     }
@@ -1258,6 +1266,7 @@ public:
     auto setup(Point first, Point second, Point third, Point fourth) -> Points
     {
         Base::setup({first, second, third, fourth});
+        label = "Rectangle";
 
         return points();
     }
@@ -1369,6 +1378,8 @@ public:
             points.emplace_back(center.position(a, horizontalRadius, verticalRadius));
         }
 
+        label = "Polygon";
+
         return Base::setup(points);
     }
 
@@ -1423,6 +1434,7 @@ public:
     auto setup(Point center, double horizontalRadius, double verticalRadius) -> Points
     {
         RegularPolygon::setup(center, horizontalRadius, verticalRadius, 0, 360);
+        label = "Ellipse";
 
         return points();
     }
@@ -1455,6 +1467,7 @@ public:
     auto setup(Point center, double radius) -> Points
     {
         Ellipse::setup(center, radius, radius);
+        label = "Circle";
 
         return points();
     }
@@ -1515,7 +1528,8 @@ public:
 
         Metadata() = default;
         Metadata(std::string creator, std::string title, std::string publisher)
-            : creator{std::move(creator)}, title{std::move(title)}, publisherAgentTitle{std::move(publisher)} {}
+            : creator{std::move(creator)}, title{std::move(title)},
+            publisherAgentTitle{std::move(publisher)} {}
     };
 
     // Drawing setup.
@@ -1534,29 +1548,26 @@ public:
 
         Style(std::string name,  std::string fill, std::string stroke, double strokeWidth)
             : name{std::move(name)}, fill{std::move(fill)}, stroke{std::move(stroke)}, strokeWidth{strokeWidth} {}
-        Style(std::string name,  std::string fill, std::string stroke, double strokeWidth,
-              double fillOpacity, double strokeOpacity)
-            : name{std::move(name)}, fill{std::move(fill)}, stroke{std::move(stroke)}, strokeWidth{strokeWidth},
-            fillOpacity{fillOpacity}, strokeOpacity{strokeOpacity} {}
+        Style(std::string name,  std::string fill, std::string stroke, double strokeWidth, double fillOpacity, double strokeOpacity)
+            : name{std::move(name)}, fill{std::move(fill)}, stroke{std::move(stroke)},
+            strokeWidth{strokeWidth}, fillOpacity{fillOpacity}, strokeOpacity{strokeOpacity} {}
     };
 
     // Polygon and Polyline.
     // points : Points vector (x,y).
-    struct Shape : Style {
+    struct NormalShape : Style {
         Points points{};
 
-        Shape() = default;
+        NormalShape() = default;
 
-        Shape(std::string name,  std::string fill, std::string stroke, double strokeWidth)
+        NormalShape(std::string name,  std::string fill, std::string stroke, double strokeWidth)
             : Style(std::move(name), std::move(fill), std::move(stroke), strokeWidth) {}
-        Shape(std::string name,  std::string fill, std::string stroke, double strokeWidth,
-              double fillOpacity, double strokeOpacity)
+        NormalShape(std::string name,  std::string fill, std::string stroke, double strokeWidth, double fillOpacity, double strokeOpacity)
             :  Style(std::move(name),  std::move(fill), std::move(stroke), strokeWidth, fillOpacity, strokeOpacity) {}
 
-        Shape(std::string name,  std::string fill, std::string stroke, double strokeWidth, Points points)
+        NormalShape(std::string name,  std::string fill, std::string stroke, double strokeWidth, Points points)
             :  Style(std::move(name),  std::move(fill), std::move(stroke), strokeWidth), points{std::move(points)} {}
-        Shape(std::string name,  std::string fill, std::string stroke, double strokeWidth,
-              double fillOpacity, double strokeOpacity, Points points)
+        NormalShape(std::string name,  std::string fill, std::string stroke, double strokeWidth, double fillOpacity, double strokeOpacity, Points points)
             :  Style(std::move(name),  std::move(fill), std::move(stroke), strokeWidth, fillOpacity, strokeOpacity),
             points{std::move(points)} {}
     };
@@ -1574,17 +1585,13 @@ public:
 
         CircleShape(std::string name,  std::string fill, std::string stroke, double strokeWidth)
             : Style(std::move(name),  std::move(fill), std::move(stroke), strokeWidth) {}
-        CircleShape(std::string name,  std::string fill, std::string stroke, double strokeWidth,
-                    double fillOpacity, double strokeOpacity)
+        CircleShape(std::string name,  std::string fill, std::string stroke, double strokeWidth, double fillOpacity, double strokeOpacity)
             :  Style(std::move(name),  std::move(fill), std::move(stroke), strokeWidth, fillOpacity, strokeOpacity) {}
 
-        CircleShape(std::string name,  std::string fill, std::string stroke, double strokeWidth,
-                    Point center, double horizontalRadius, double verticalRadius)
+        CircleShape(std::string name,  std::string fill, std::string stroke, double strokeWidth, Point center, double horizontalRadius, double verticalRadius)
             :  Style(std::move(name),  std::move(fill), std::move(stroke), strokeWidth), center(center),
             horizontalRadius(horizontalRadius), verticalRadius(verticalRadius) {}
-        CircleShape(std::string name,  std::string fill, std::string stroke, double strokeWidth,
-                    double fillOpacity, double strokeOpacity,
-                    Point center, double horizontalRadius, double verticalRadius)
+        CircleShape(std::string name,  std::string fill, std::string stroke, double strokeWidth, double fillOpacity, double strokeOpacity, Point center, double horizontalRadius, double verticalRadius)
             :  Style(std::move(name),  std::move(fill), std::move(stroke), strokeWidth, fillOpacity, strokeOpacity),
             center(center), horizontalRadius(horizontalRadius), verticalRadius(verticalRadius) {}
     };
@@ -1696,7 +1703,7 @@ private:
 public:
 
     // Return SVG: <polyline ... />
-    static auto polyline(const Shape &shape) -> std::string
+    static auto polyline(const NormalShape &shape) -> std::string
     {
 
         if (shape.points.empty()) {
@@ -1714,7 +1721,7 @@ public:
     }
 
     // Return SVG: <path ... />
-    static auto polygon(Shape shape) -> std::string
+    static auto polygon(NormalShape shape) -> std::string
     {
         if (shape.points.empty()) {
             return "<!-- Empty -->\n";
@@ -1743,6 +1750,44 @@ public:
             "cy=\"" + circle.center.Y.toStr(true) + "\" " +
             "rx=\"" + Text::trimZeros(circle.horizontalRadius) + "\" " +
             "ry=\"" + Text::trimZeros(circle.verticalRadius) + "\" />\n"
+        };
+    }
+
+    // Return clone SVG.
+    // referenceName : references ID of the original SVG element.
+    // rotationAngle : rotation applied to the clone object.
+    // center        : center of rotation of the clone object.
+    // position      : clone object coordinate. (x,y)
+    static auto clone(std::string referenceName, int rotationAngle, Point center, Point position) -> std::string
+    {
+        static int counter = 0;
+
+        position.X.value += center.X.value < 0.0 ? -center.X.value : 0.0;
+        position.Y.value += center.Y.value < 0.0 ? -center.Y.value : 0.0;
+
+        // Matrix - Rotate and Translate
+        auto a = Math::radians(rotationAngle);
+        Numbers matrix{
+            std::cos(a), -std::sin(a), -center.X.value *std::cos(a) + center.Y.value * sin(a) + center.X.value + position.X.value,
+            std::sin(a),  std::cos(a), -center.X.value *std::sin(a) - center.Y.value * cos(a) + center.Y.value + position.Y.value,
+            0, 0, 1
+        };
+        std::string transform{};
+        for (std::vector<int> index{ 0, 3, 1, 4, 2, 5 }; auto &i : index) {
+            transform += std::to_string(matrix[i]) + " ";
+        }
+
+        std::string label = "Clone_" + referenceName + "_" + std::to_string(counter++);
+
+        return {
+            "<use \n"
+            "x=\"0\"\n"
+            "y=\"0\"\n"
+            "xlink:href=\"#" + referenceName + "\"\n" +
+            "id=\"" + label + "\"\n" +
+            "transform=\"matrix( " + transform + ")\"\n" +
+            "width=\"100%\"\n"
+            "height=\"100%\" />"
         };
     }
 
@@ -1904,9 +1949,9 @@ class Sketch : public SVG, public Color {
 public:
 
     // Return basic SVG::Shape with Polygon base.
-    static auto Shape(Base base, std::string label) -> SVG::Shape
+    static auto normalShape(Base base, std::string label) -> SVG::NormalShape
     {
-        SVG::Shape shape;
+        SVG::NormalShape shape;
         shape.name = std::move(label);
         shape.points = base.points();
 
@@ -1914,7 +1959,7 @@ public:
     }
 
     // Return basic SVG::CircleShape with Ellipse base.
-    static auto CircleShape(const Ellipse &ellipse, std::string label) -> SVG::CircleShape
+    static auto circleShape(const Ellipse &ellipse, std::string label) -> SVG::CircleShape
     {
         SVG::CircleShape shape;
         shape.name = std::move(label);
@@ -1926,107 +1971,107 @@ public:
     }
 
     // Return SVG::polyline with Polygon base.
-    static auto SvgPolyline(const Base &base, std::string label) -> std::string
+    static auto svgPolyline(const Base &base, std::string label) -> std::string
     {
 
-        return SVG::polygon(Shape(base, std::move(label)));
+        return SVG::polygon(normalShape(base, std::move(label)));
     }
 
     // Return SVG::polyline with Polygon base.
-    static auto SvgPolyline(Base base, std::string label, RGBA fill, RGBA stroke) -> std::string
+    static auto svgPolyline(Base base, std::string label, RGBA fill, RGBA stroke) -> std::string
     {
 
-        return SVG::polyline(SVG::Shape(std::move(label),
-                                        SVG::RGB2HEX(fill.R, fill.G, fill.B),
-                                        SVG::RGB2HEX(stroke.R, stroke.G, stroke.B),
-                                        1.0,    // strokeWidth
-                                        base.points()));
+        return SVG::polyline(SVG::NormalShape(std::move(label),
+                                              SVG::RGB2HEX(fill.R, fill.G, fill.B),
+                                              SVG::RGB2HEX(stroke.R, stroke.G, stroke.B),
+                                              1.0,    // strokeWidth
+                                              base.points()));
     }
 
     // Return SVG::polyline with Polygon base.
-    static auto SvgPolyline(Base base, std::string label, RGBA fill, RGBA stroke,
+    static auto svgPolyline(Base base, std::string label, RGBA fill, RGBA stroke,
                             double fillOpacity, double strokeOpacity) -> std::string
     {
 
-        return SVG::polyline(SVG::Shape(std::move(label),
-                                        SVG::RGB2HEX(fill.R, fill.G, fill.B),
-                                        SVG::RGB2HEX(stroke.R, stroke.G, stroke.B),
-                                        1.0,    // strokeWidth
-                                        fillOpacity,
-                                        strokeOpacity,
-                                        base.points()));
+        return SVG::polyline(SVG::NormalShape(std::move(label),
+                                              SVG::RGB2HEX(fill.R, fill.G, fill.B),
+                                              SVG::RGB2HEX(stroke.R, stroke.G, stroke.B),
+                                              1.0,    // strokeWidth
+                                              fillOpacity,
+                                              strokeOpacity,
+                                              base.points()));
     }
 
     // Return SVG::polyline with Polygon base.
-    static auto SvgPolyline(Base base, std::string label, RGBA fill, RGBA stroke,
+    static auto svgPolyline(Base base, std::string label, RGBA fill, RGBA stroke,
                             double fillOpacity, double strokeOpacity,
                             double strokeWidth) -> std::string
     {
 
-        return SVG::polyline(SVG::Shape(std::move(label),
-                                        SVG::RGB2HEX(fill.R, fill.G, fill.B),
-                                        SVG::RGB2HEX(stroke.R, stroke.G, stroke.B),
-                                        strokeWidth,
-                                        fillOpacity,
-                                        strokeOpacity,
-                                        base.points()));
+        return SVG::polyline(SVG::NormalShape(std::move(label),
+                                              SVG::RGB2HEX(fill.R, fill.G, fill.B),
+                                              SVG::RGB2HEX(stroke.R, stroke.G, stroke.B),
+                                              strokeWidth,
+                                              fillOpacity,
+                                              strokeOpacity,
+                                              base.points()));
     }
 
     // Return SVG::polygon with Polygon base.
-    static auto SvgPolygon(const Base &base, std::string label) -> std::string
+    static auto svgPolygon(const Base &base, std::string label) -> std::string
     {
 
-        return SVG::polygon(Shape(base, std::move(label)));
+        return SVG::polygon(normalShape(base, std::move(label)));
     }
 
     // Return SVG::polygon with Polygon base.
-    static auto SvgPolygon(Base base, std::string label, RGBA fill, RGBA stroke) -> std::string
+    static auto svgPolygon(Base base, std::string label, RGBA fill, RGBA stroke) -> std::string
     {
 
-        return SVG::polygon(SVG::Shape(std::move(label),
-                                       SVG::RGB2HEX(fill.R, fill.G, fill.B),
-                                       SVG::RGB2HEX(stroke.R, stroke.G, stroke.B),
-                                       1.0, // strokeWidth
-                                       base.points()));
+        return SVG::polygon(SVG::NormalShape(std::move(label),
+                                             SVG::RGB2HEX(fill.R, fill.G, fill.B),
+                                             SVG::RGB2HEX(stroke.R, stroke.G, stroke.B),
+                                             1.0, // strokeWidth
+                                             base.points()));
     }
 
     // Return SVG::polygon with Polygon base.
-    static auto SvgPolygon(Base base, std::string label, RGBA fill, RGBA stroke,
+    static auto svgPolygon(Base base, std::string label, RGBA fill, RGBA stroke,
                            double fillOpacity, double strokeOpacity) -> std::string
     {
 
-        return SVG::polygon(SVG::Shape(std::move(label),
-                                       SVG::RGB2HEX(fill.R, fill.G, fill.B),
-                                       SVG::RGB2HEX(stroke.R, stroke.G, stroke.B),
-                                       1.0, // strokeWidth
-                                       fillOpacity,
-                                       strokeOpacity,
-                                       base.points()));
+        return SVG::polygon(SVG::NormalShape(std::move(label),
+                                             SVG::RGB2HEX(fill.R, fill.G, fill.B),
+                                             SVG::RGB2HEX(stroke.R, stroke.G, stroke.B),
+                                             1.0, // strokeWidth
+                                             fillOpacity,
+                                             strokeOpacity,
+                                             base.points()));
     }
 
     // Return SVG::polygon with Polygon base.
-    static auto SvgPolygon(Base base, std::string label, RGBA fill, RGBA stroke,
+    static auto svgPolygon(Base base, std::string label, RGBA fill, RGBA stroke,
                            double fillOpacity, double strokeOpacity,
                            double strokeWidth) -> std::string
     {
 
-        return SVG::polygon(SVG::Shape(std::move(label),
-                                       SVG::RGB2HEX(fill.R, fill.G, fill.B),
-                                       SVG::RGB2HEX(stroke.R, stroke.G, stroke.B),
-                                       strokeWidth,
-                                       fillOpacity,
-                                       strokeOpacity,
-                                       base.points()));
+        return SVG::polygon(SVG::NormalShape(std::move(label),
+                                             SVG::RGB2HEX(fill.R, fill.G, fill.B),
+                                             SVG::RGB2HEX(stroke.R, stroke.G, stroke.B),
+                                             strokeWidth,
+                                             fillOpacity,
+                                             strokeOpacity,
+                                             base.points()));
     }
 
     // Return SVG::circle with Ellipse base.
-    static auto SvgCircle(const Ellipse &ellipse, std::string label) -> std::string
+    static auto svgCircle(const Ellipse &ellipse, std::string label) -> std::string
     {
-        return SVG::circle(CircleShape(ellipse, std::move(label)));
+        return SVG::circle(circleShape(ellipse, std::move(label)));
     }
 
     // Return SVG::circle with Ellipse base.
-    static auto SvgCircle(const Ellipse &ellipse, std::string label, RGBA fill, RGBA stroke) -> std::string
+    static auto svgCircle(const Ellipse &ellipse, std::string label, RGBA fill, RGBA stroke) -> std::string
     {
         return SVG::circle(SVG::CircleShape(std::move(label),
                                             SVG::RGB2HEX(fill.R, fill.G, fill.B),
@@ -2040,7 +2085,7 @@ public:
     }
 
     // Return SVG::circle with Ellipse base.
-    static auto SvgCircle(const Ellipse &ellipse, std::string label, RGBA fill, RGBA stroke,
+    static auto svgCircle(const Ellipse &ellipse, std::string label, RGBA fill, RGBA stroke,
                           double fillOpacity, double strokeOpacity) -> std::string
     {
         return SVG::circle(SVG::CircleShape(std::move(label),
@@ -2055,7 +2100,7 @@ public:
     }
 
     // Return SVG::circle with Ellipse base.
-    static auto SvgCircle(const Ellipse &ellipse, std::string label, RGBA fill, RGBA stroke,
+    static auto svgCircle(const Ellipse &ellipse, std::string label, RGBA fill, RGBA stroke,
                           double fillOpacity, double strokeOpacity,
                           double strokeWidth) -> std::string
     {
@@ -2071,11 +2116,11 @@ public:
     }
 
     // Returns SVG Elements.
-    static auto Join(const std::vector<Base> &bases, const std::string &label = "") -> std::string
+    static auto join(const std::vector<Base> &bases, const std::string &label = "") -> std::string
     {
         std::string strShape{};
         for (const auto &item : bases) {
-            strShape += Sketch::SvgPolygon(item, label);
+            strShape += Sketch::svgPolygon(item, label);
         }
 
         return strShape;
@@ -2138,32 +2183,20 @@ public:
         line = line.substr(command.size()); // Remove command word.
 
         // Check points container: { }
-        auto counter = count_if(line.begin(), line.end(),
-                                [](char c) {
-                                    return c == '{';
-                                });
+        auto counter = count_if(line.begin(), line.end(), [](char c) { return c == '{'; });
         if (counter > 1) {
             error = bkp + ERROR + "[Curly braces]\n";
             return result;
         }
-        counter -= count_if(line.begin(), line.end(),
-                            [](char c) {
-                                return c == '}';
-                            });
+        counter -= count_if(line.begin(), line.end(), [](char c) { return c == '}'; });
         if (counter != 0) {
             error = bkp + ERROR + "[Curly braces]\n";
             return result;
         }
 
         // Check coordinates container. ( )
-        counter = count_if(line.begin(), line.end(),
-                           [](char c) {
-                               return c == '(';
-                           }) -
-                  count_if(line.begin(), line.end(),
-                           [](char c) {
-                               return c == ')';
-                           });
+        counter = count_if(line.begin(), line.end(), [](char c) { return c == '('; }) -
+                  count_if(line.begin(), line.end(), [](char c) { return c == ')'; });
         if (counter != 0) {
             error = bkp + ERROR + "[Parentheses]\n";
             return result;
@@ -2204,9 +2237,9 @@ public:
             for (auto str : Text::split(content, SPACE)) {
                 str = Text::trim(str, SPACE);
                 if (str.starts_with('(') && str.ends_with(')')) { // (x,y)
-                    str = Text::trim(Text::trim(str, '('), ')');              //  x,y
+                    str = Text::trim(Text::trim(str, '('), ')');  //  x,y
                     try {
-                        auto values = Text::split(str, ',');            //  x y
+                        auto values = Text::split(str, ',');      //  x y
                         if (values.size() == 2) {
                             // Convert to Point.
                             points.emplace_back(Point(stod(values[0]),
@@ -2322,17 +2355,17 @@ public:
                 return {};
             }
             if (points.size() > 1) {
-                result = Sketch::SvgPolygon(IrregularPolygon(points),
+                result = Sketch::svgPolygon(IrregularPolygon(points),
                                             label, fillColor, strokeColor);
             }
             break;
         case LINE:
             if (points.size() == 1 && angle > 0 && length > 0) {
-                result = Sketch::SvgPolygon(Line(points.front(), angle, length),
+                result = Sketch::svgPolygon(Line(points.front(), angle, length),
                                             label, fillColor, strokeColor);
             }
             else if (points.size() == 2) {
-                result = Sketch::SvgPolygon(IrregularPolygon(points),
+                result = Sketch::svgPolygon(IrregularPolygon(points),
                                             label, fillColor, strokeColor);
             }
             else {
@@ -2342,12 +2375,12 @@ public:
             break;
         case TRIANGLE:
             if (points.size() == 2) {
-                result = Sketch::SvgPolygon(Triangle(points[0], points[1], height),
+                result = Sketch::svgPolygon(Triangle(points[0], points[1], height),
                                             label, fillColor, strokeColor,
                                             fillOpacity, strokeOpacity, strokeWidth);
             }
             else if (points.size() == 3) {
-                result = Sketch::SvgPolygon(IrregularPolygon(points),
+                result = Sketch::svgPolygon(IrregularPolygon(points),
                                             label, fillColor, strokeColor,
                                             fillOpacity, strokeOpacity, strokeWidth);
             }
@@ -2358,12 +2391,12 @@ public:
             break;
         case RECTANGLE:
             if (points.size() == 1 && width > 0 && height > 0) {
-                result = Sketch::SvgPolygon(Rectangle(points.front(), width, height),
+                result = Sketch::svgPolygon(Rectangle(points.front(), width, height),
                                             label, fillColor, strokeColor,
                                             fillOpacity, strokeOpacity, strokeWidth);
             }
             else if (points.size() == 4) {
-                result = Sketch::SvgPolygon(IrregularPolygon(points),
+                result = Sketch::svgPolygon(IrregularPolygon(points),
                                             label, fillColor, strokeColor,
                                             fillOpacity, strokeOpacity, strokeWidth);
             }
@@ -2374,7 +2407,7 @@ public:
             break;
         case CIRCLE:
             if (points.size() == 1 && horizontalRadius > 0) {
-                result = Sketch::SvgCircle(Circle(points.front(), horizontalRadius),
+                result = Sketch::svgCircle(Circle(points.front(), horizontalRadius),
                                            label, fillColor, strokeColor,
                                            fillOpacity, strokeOpacity, strokeWidth);
             }
@@ -2385,7 +2418,7 @@ public:
             break;
         case ELLIPSE:
             if (points.size() == 1 && horizontalRadius > 0 && verticalRadius > 0) {
-                result = Sketch::SvgCircle(Ellipse(points.front(),
+                result = Sketch::svgCircle(Ellipse(points.front(),
                                                    horizontalRadius,
                                                    verticalRadius),
                                            label, fillColor, strokeColor,
@@ -2398,13 +2431,13 @@ public:
             break;
         case POLYGON:
             if (points.size() == 1 && horizontalRadius > 0 && angle > 0 && sides > 2) {
-                result = Sketch::SvgPolygon(RegularPolygon(points.front(),
+                result = Sketch::svgPolygon(RegularPolygon(points.front(),
                                                            horizontalRadius, angle, sides),
                                             label, fillColor, strokeColor,
                                             fillOpacity, strokeOpacity, strokeWidth);
             }
             else if (points.size() > 1) {
-                result = Sketch::SvgPolygon(IrregularPolygon(points),
+                result = Sketch::svgPolygon(IrregularPolygon(points),
                                             label, fillColor, strokeColor,
                                             fillOpacity, strokeOpacity);
             }
