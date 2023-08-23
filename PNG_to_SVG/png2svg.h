@@ -27,7 +27,8 @@ public:
     enum Type {
         PIXEL,      // Converts pixel to small squares.
         GROUP,      // Converts regions with equal and close pixels into group of small squares.
-        REGIONS     // Experimental. Simple edge detection.
+        REGIONS1,   // Experimental. Simple edge detection. Generated SVG contains border pixels.
+        REGIONS2    // Experimental. Simple edge detection. SVG contains pixels grouped into vertices.
     };
 
     // Export processed data in SVG.
@@ -61,7 +62,10 @@ private:
     long long int limit = 256 * 256;
 
     // Points to draw a pixel.
-    std::vector<Point> rect(Point origin, unsigned width, unsigned height);
+    Points rect(Point origin, unsigned width, unsigned height);
+
+    // SVG element.
+    std::string draw(std::string label, RGBA pixel, Points points);
 
     // Process separate pixels.
     // Each pixel is converted to a square in SVG.
@@ -75,10 +79,10 @@ private:
     // Process pixel in regions.
     // Searches for identical pixels to group using recursive algorithm.
     // Experimental. Simple algorithm for finding edges.
-    std::string svgRegions();
+    std::string svgRegions(bool onlyVertices = false);
 
     // Recursive function.
-    void connect(std::vector<Point> &connected,     // Temporary storage of nearby points.
+    void connect(Points &connected,                 // Temporary storage of nearby points.
                  std::vector<RGBA> &image,          // Temporary matrix or image copy.
                  unsigned rows, unsigned cols,      // Image vector size.
                  unsigned row, unsigned col,        // Starting point.

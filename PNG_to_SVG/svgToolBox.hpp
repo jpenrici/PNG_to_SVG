@@ -9,15 +9,14 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <locale>
 #include <map>
 #include <numbers>
 #include <random>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
-#include <stdexcept>
-#include <unordered_map>
-#include <locale>
 
 namespace smalltoolbox {
 
@@ -810,8 +809,8 @@ public:
         return result;
     }
 
-    // Sort the Points clockwise.
-    static auto organize(Points points) -> Points
+    // Sort the points clockwise using center point.
+    static auto organize(Point center, Points points) -> Points
     {
         if (points.size() < 2) {
             return points;
@@ -821,7 +820,7 @@ public:
         std::map<double, Points > mapPoint;
 
         for (auto value : points) {
-            auto key = Point(0, 0).angle(value);
+            auto key = center.angle(value);
             if (mapPoint.find(key) == mapPoint.end()) {
                 mapPoint.insert(make_pair(key, Points{value}));
             }
@@ -838,6 +837,12 @@ public:
         }
 
         return result;
+    }
+
+    // Sort the points clockwise using origin.
+    static auto organize(Points points) -> Points
+    {
+        return organize(Point(0, 0), points);
     }
 
     auto toStr(bool trimmed = false) const -> std::string
