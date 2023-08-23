@@ -120,6 +120,13 @@ public:
         return str.substr(left, 1 + right - left);
     }
 
+    // Trim zeros: Formats numbers.
+    static auto trimZeros(double value) -> std::string
+    {
+        auto str = std::to_string(value);
+        return Text::rtrim(str, '0') + '0';
+    }
+
     // Join strings.
     static auto join(Strings vStr, char delimiter) -> std::string
     {
@@ -469,9 +476,9 @@ class Point {
     struct Coordinate {
         double value{0};
 
-        auto toStr() const -> std::string
+        auto toStr(bool trimZeros = false) const -> std::string
         {
-            return std::to_string(value);
+            return trimZeros ? Text::trimZeros(value) : std::to_string(value);
         }
     };
 
@@ -845,13 +852,9 @@ public:
         return organize(Point(0, 0), points);
     }
 
-    auto toStr(bool trimmed = false) const -> std::string
+    auto toStr(bool trimZeros = false) const -> std::string
     {
-        if (!trimmed) {
-            return X.toStr() + "," + Y.toStr();
-        }
-
-        return Text::rtrim(X.toStr(), '0') + "," + Text::rtrim(Y.toStr(), '0');
+        return X.toStr(trimZeros) + "," + Y.toStr(trimZeros);
     }
 
 };
@@ -1534,7 +1537,7 @@ public:
         Style(std::string name,  std::string fill, std::string stroke, double strokeWidth,
               double fillOpacity, double strokeOpacity)
             : name{std::move(name)}, fill{std::move(fill)}, stroke{std::move(stroke)}, strokeWidth{strokeWidth},
-              fillOpacity{fillOpacity}, strokeOpacity{strokeOpacity} {}
+            fillOpacity{fillOpacity}, strokeOpacity{strokeOpacity} {}
     };
 
     // Polygon and Polyline.
@@ -1555,7 +1558,7 @@ public:
         Shape(std::string name,  std::string fill, std::string stroke, double strokeWidth,
               double fillOpacity, double strokeOpacity, Points points)
             :  Style(std::move(name),  std::move(fill), std::move(stroke), strokeWidth, fillOpacity, strokeOpacity),
-               points{std::move(points)} {}
+            points{std::move(points)} {}
     };
 
     // Circle and Ellipse.
@@ -1578,12 +1581,12 @@ public:
         CircleShape(std::string name,  std::string fill, std::string stroke, double strokeWidth,
                     Point center, double horizontalRadius, double verticalRadius)
             :  Style(std::move(name),  std::move(fill), std::move(stroke), strokeWidth), center(center),
-               horizontalRadius(horizontalRadius), verticalRadius(verticalRadius) {}
+            horizontalRadius(horizontalRadius), verticalRadius(verticalRadius) {}
         CircleShape(std::string name,  std::string fill, std::string stroke, double strokeWidth,
                     double fillOpacity, double strokeOpacity,
                     Point center, double horizontalRadius, double verticalRadius)
             :  Style(std::move(name),  std::move(fill), std::move(stroke), strokeWidth, fillOpacity, strokeOpacity),
-               center(center), horizontalRadius(horizontalRadius), verticalRadius(verticalRadius) {}
+            center(center), horizontalRadius(horizontalRadius), verticalRadius(verticalRadius) {}
     };
 
     // Converts decimal value to hexadecimal.
@@ -1683,11 +1686,11 @@ private:
         style.strokeOpacity = style.strokeOpacity < 0 ? 0 : std::min(style.strokeOpacity / 255, 1.0);
 
         return {
-            "id=\"" + style.name + "\"\nstyle=\"" +
-            "opacity:" + std::to_string(style.fillOpacity) + ";fill:" + style.fill +
-            ";stroke:" + style.stroke + ";stroke-width:" + std::to_string(style.strokeWidth) +
-            ";stroke-opacity:" + std::to_string(style.strokeOpacity) +
-            ";stroke-linejoin:round;stroke-linecap:round\"\n" };
+                "id=\"" + style.name + "\"\nstyle=\"" +
+                "opacity:" + Text::trimZeros(style.fillOpacity) + ";fill:" + style.fill +
+                ";stroke:" + style.stroke + ";stroke-width:" + Text::trimZeros(style.strokeWidth) +
+                ";stroke-opacity:" + Text::trimZeros(style.strokeOpacity) +
+                ";stroke-linejoin:round;stroke-linecap:round\"\n" };
     }
 
 public:
@@ -1702,7 +1705,7 @@ public:
 
         std::string values;
         for (const auto &point : shape.points) {
-            values += point.toStr() + " ";
+            values += point.toStr(true) + " ";
         }
 
         return {
@@ -1719,9 +1722,9 @@ public:
 
         std::string values;
         for (unsigned i = 0; i < shape.points.size() - 1; i++) {
-            values += shape.points[i].toStr() + " L ";
+            values += shape.points[i].toStr(true) + " L ";
         }
-        values += shape.points[shape.points.size() - 1].toStr();
+        values += shape.points[shape.points.size() - 1].toStr(true);
 
         return {
             "<path\n" + style(shape, shape.name) + "d=\"M " + values + " Z\" />\n"
@@ -1736,10 +1739,10 @@ public:
         }
         return {
             "<ellipse\n" + style(circle, circle.name) +
-            "cx=\"" + circle.center.X.toStr() + "\" " +
-            "cy=\"" + circle.center.Y.toStr() + "\" " +
-            "rx=\"" + std::to_string(circle.horizontalRadius) + "\" " +
-            "ry=\"" + std::to_string(circle.verticalRadius) + "\" />\n"
+            "cx=\"" + circle.center.X.toStr(true) + "\" " +
+            "cy=\"" + circle.center.Y.toStr(true) + "\" " +
+            "rx=\"" + Text::trimZeros(circle.horizontalRadius) + "\" " +
+            "ry=\"" + Text::trimZeros(circle.verticalRadius) + "\" />\n"
         };
     }
 
@@ -1841,9 +1844,9 @@ public:
 
         RGBA(int r, int g, int b, int a)
             : RGBA(std::vector<int>
-        {
-            r, g, b, a
-        }) {}
+                   {
+                       r, g, b, a
+                   }) {}
 
         explicit RGBA(std::vector<int> rgba)
             : RGBA()
@@ -2136,17 +2139,17 @@ public:
 
         // Check points container: { }
         auto counter = count_if(line.begin(), line.end(),
-        [](char c) {
-            return c == '{';
-        });
+                                [](char c) {
+                                    return c == '{';
+                                });
         if (counter > 1) {
             error = bkp + ERROR + "[Curly braces]\n";
             return result;
         }
         counter -= count_if(line.begin(), line.end(),
-        [](char c) {
-            return c == '}';
-        });
+                            [](char c) {
+                                return c == '}';
+                            });
         if (counter != 0) {
             error = bkp + ERROR + "[Curly braces]\n";
             return result;
@@ -2154,13 +2157,13 @@ public:
 
         // Check coordinates container. ( )
         counter = count_if(line.begin(), line.end(),
-        [](char c) {
-            return c == '(';
-        }) -
-        count_if(line.begin(), line.end(),
-        [](char c) {
-            return c == ')';
-        });
+                           [](char c) {
+                               return c == '(';
+                           }) -
+                  count_if(line.begin(), line.end(),
+                           [](char c) {
+                               return c == ')';
+                           });
         if (counter != 0) {
             error = bkp + ERROR + "[Parentheses]\n";
             return result;
@@ -2396,7 +2399,7 @@ public:
         case POLYGON:
             if (points.size() == 1 && horizontalRadius > 0 && angle > 0 && sides > 2) {
                 result = Sketch::SvgPolygon(RegularPolygon(points.front(),
-                                            horizontalRadius, angle, sides),
+                                                           horizontalRadius, angle, sides),
                                             label, fillColor, strokeColor,
                                             fillOpacity, strokeOpacity, strokeWidth);
             }

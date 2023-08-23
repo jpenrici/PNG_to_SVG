@@ -12,7 +12,7 @@ ImgTool::~ImgTool()
     std::cout << "Image Tool stoped!\n";
 }
 
-bool ImgTool::load(std::string path)
+auto ImgTool::load(std::string path) -> bool
 {
     const std::filesystem::path p(path);
     if (!std::filesystem::exists(p)) {
@@ -106,7 +106,7 @@ bool ImgTool::load(std::string path)
                             inflateEnd(&infstream);
                             // Store.
                             for (unsigned j = 0; j < expectedLength; j++) {
-                                IDAT_data.push_back(int((unsigned char)valuesOut[j]));
+                                IDAT_data.emplace_back(int((unsigned char)valuesOut[j]));
                             }
                         }
                         if (std::string(memblock + i, memblock + i + 4) == std::string("IEND")) {
@@ -180,7 +180,7 @@ bool ImgTool::load(std::string path)
                                 std::cerr << "Unknown filter type: " << filter_type << '\n';
                                 break;
                             }
-                            Recon.push_back(Recon_x & 0xff);
+                            Recon.emplace_back(Recon_x & 0xff);
                         }
                     }
 
@@ -188,7 +188,10 @@ bool ImgTool::load(std::string path)
                     currentImage.status = (!Recon.empty() && Recon.size() % 4 == 0);
                     if (currentImage.status) {
                         for (unsigned i = 0; i < Recon.size(); i += 4) {
-                            currentImage.image.push_back(RGBA(Recon[i], Recon[i + 1], Recon[i + 2], Recon[i + 3]));
+                            currentImage.image.emplace_back(RGBA(Recon[i],
+                                                                 Recon[i + 1],
+                                                                 Recon[i + 2],
+                                                                 Recon[i + 3]));
                         }
                     }
                 }
@@ -211,7 +214,7 @@ void ImgTool::summary(bool imageData)
     std::cout << currentImage.toStr(imageData);
 }
 
-bool ImgTool::exportSVG(std::string path, unsigned outputType)
+auto ImgTool::exportSVG(std::string path, unsigned outputType) -> bool
 {
     if (!currentImage.status) {
         std::cerr << "There was something wrong!\n";
@@ -259,7 +262,7 @@ bool ImgTool::exportSVG(std::string path, unsigned outputType)
     return IO::save(svg, path);
 }
 
-std::string ImgTool::svgPixel()
+auto ImgTool::svgPixel() -> std::string
 {
     // Square dimensions.
     int width  = 1;
@@ -274,7 +277,7 @@ std::string ImgTool::svgPixel()
             auto index = row * cols + col;
             auto pixel = image[index];
             if (pixel.A > 0) {
-                figure += draw("PX_" + std::to_string(index), pixel,
+                figure += draw("p" + std::to_string(index), pixel,
                                rect(Point(col, row), width, height));
             }
         }
@@ -283,7 +286,7 @@ std::string ImgTool::svgPixel()
     return SVG::svg(cols * width, rows * height, figure, SVG::Metadata());
 }
 
-std::string ImgTool::svgGroupPixel()
+auto ImgTool::svgGroupPixel() -> std::string
 {
     // Dimensions.
     int width  = 1;
@@ -304,11 +307,11 @@ std::string ImgTool::svgGroupPixel()
                 if (!connected.empty()) {
                     std::string elements{};
                     for (auto &item : connected) {
-                        elements += draw("GPX_" + item.toStr(), pixel,
-                                       rect(item, width, height));
+                        elements += draw("p" + item.toStr(true), pixel,
+                                         rect(item, width, height));
                     }
                     if (!elements.empty()) {
-                        figure += SVG::group("Group_" + std::to_string(count++), elements);
+                        figure += SVG::group("g" + std::to_string(count++), elements);
                     }
                 }
             }
@@ -318,7 +321,7 @@ std::string ImgTool::svgGroupPixel()
     return SVG::svg(cols * width, rows * height, figure, SVG::Metadata());
 }
 
-std::string ImgTool::svgRegions(bool onlyVertices)
+auto ImgTool::svgRegions(bool onlyVertices) -> std::string
 {
     // Dimensions.
     int width  = 1;
@@ -455,21 +458,48 @@ std::string ImgTool::svgRegions(bool onlyVertices)
                                 if (!connected.empty()) {
                                     std::string elements{};
                                     if (!onlyVertices) {
-                                        // Method Regions 1
+                                        // Method: Regions 1
                                         for (auto &item : connected) {
-                                            elements += draw("R1PX_" + item.toStr(), pixel,
-                                                            rect(item, width, height));
+                                            elements += draw("p" + item.toStr(true), pixel,
+                                                             rect(item, width, height));
+                                        }
+                                        if (!elements.empty()) {
+                                            figure += SVG::group("g" + std::to_string(count++), elements);
                                         }
                                     }
                                     else {
-                                        // Method Regions 2
-                                        Point center;
-                                        Point::average(connected, center);
-                                        auto vertices = Point::organize(center, connected);
-                                        elements = draw("R2PX_" + center.toStr(), pixel, vertices);
-                                    }
-                                    if (!elements.empty()) {
-                                        figure += SVG::group("Group_" + std::to_string(count++), elements);
+                                        // Method: Regions 2
+                                        // Ignore connections smaller than three points.
+                                        if (connected.size() == 3) {
+                                            figure += draw("p" + connected.front().toStr(true), pixel,
+                                                           connected);
+                                        }
+                                        if (connected.size() > 3) {
+                                            Point center; // Midpoint of the region.
+                                            Point::average(connected, center);
+                                            for (auto &item : connected) {
+                                                // Shift right.
+                                                if (item.X.value > center.X.value &&
+                                                        item.Y.value < center.Y.value) {
+                                                    item += Point(width, 0);
+                                                }
+                                                // Shift down.
+                                                else if (item.X.value < center.X.value &&
+                                                         item.Y.value > center.Y.value) {
+                                                    item += Point(0, height);
+                                                }
+                                                // Shift right and down.
+                                                else if (item.X.value > center.X.value &&
+                                                         item.Y.value > center.Y.value) {
+                                                    item += Point(width, height);
+                                                }
+                                                // if item.X.value < center.X.value &&
+                                                //    item.Y.value < center.Y.value
+                                                // Do nothing!
+                                            }
+                                            auto vertices = Point::organize(center, connected);
+                                            figure += draw("p" + std::to_string(count++), pixel, vertices);
+                                        }
                                     }
                                 }
                             }
@@ -507,7 +537,7 @@ void ImgTool::connect(Points &connected,
     }
 
     // Update data
-    connected.push_back(Point(col, row));
+    connected.emplace_back(Point(col, row));
     image[row * cols + col] = RGBA();
 
     // Recursion
@@ -523,29 +553,29 @@ void ImgTool::connect(Points &connected,
     }
 }
 
-Points ImgTool::rect(Point origin, unsigned int width, unsigned int height)
+auto ImgTool::rect(Point origin, unsigned int width, unsigned int height) -> Points
 {
     return Points {Point(origin.X.value * width, origin.Y.value * height),
-                               Point(origin.X.value * width + width, origin.Y.value * height),
-                               Point(origin.X.value * width + width, origin.Y.value * height + height),
-                               Point(origin.X.value * width, origin.Y.value * height + height),
-                               Point(origin.X.value * width, origin.Y.value * height)
-                              };
+                   Point(origin.X.value * width + width, origin.Y.value * height),
+                   Point(origin.X.value * width + width, origin.Y.value * height + height),
+                   Point(origin.X.value * width, origin.Y.value * height + height),
+                   Point(origin.X.value * width, origin.Y.value * height)
+                  };
 }
 
-std::string ImgTool::draw(std::string label, RGBA pixel, Points points)
+auto ImgTool::draw(std::string label, RGBA pixel, Points points) -> std::string
 {
     return SVG::polyline(SVG::Shape(
-        label,                                     // name.
-        SVG::RGB2HEX(pixel.R, pixel.G, pixel.B),   // fill color.
-        SVG::BLACK,                                // stroke color.
-        0.0,                                       // stroke width
-        pixel.A,                                   // fill opacity.
-        255,                                       // stroke opacity
-        points));                                  // Points
+                             label,                                     // name.
+                             SVG::RGB2HEX(pixel.R, pixel.G, pixel.B),   // fill color.
+                             SVG::BLACK,                                // stroke color.
+                             0.0,                                       // stroke width
+                             pixel.A,                                   // fill opacity.
+                             255,                                       // stroke opacity
+                             points));                                  // Points
 }
 
-std::string ImgTool::IMG::toStr(bool imageData = true)
+auto ImgTool::IMG::toStr(bool imageData = true) -> std::string
 {
     std::vector<std::string> colourType {
         "Greyscale",            // 0

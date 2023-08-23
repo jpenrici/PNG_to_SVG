@@ -15,9 +15,9 @@
 
 #define RGBA smalltoolbox::Color::RGBA
 
+using smalltoolbox::IO;
 using smalltoolbox::Point;
 using smalltoolbox::SVG;
-using smalltoolbox::IO;
 
 class ImgTool {
 public:
@@ -32,10 +32,10 @@ public:
     };
 
     // Export processed data in SVG.
-    bool exportSVG(std::string path, unsigned outputType = PIXEL);
+    auto exportSVG(std::string path, unsigned outputType = PIXEL) -> bool;
 
     // Load file and process binary data from PNG file.
-    bool load(std::string path);
+    auto load(std::string path) -> bool;
 
     // View details of the processed image in the terminal. If imageData true displays RGBA data.
     void summary(bool imageData = false);
@@ -62,24 +62,24 @@ private:
     long long int limit = 256 * 256;
 
     // Points to draw a pixel.
-    Points rect(Point origin, unsigned width, unsigned height);
+    auto rect(Point origin, unsigned width, unsigned height) -> Points;
 
     // SVG element.
-    std::string draw(std::string label, RGBA pixel, Points points);
+    auto draw(std::string label, RGBA pixel, Points points) -> std::string;
 
     // Process separate pixels.
     // Each pixel is converted to a square in SVG.
-    std::string svgPixel();
+    auto svgPixel() -> std::string;
 
     // Process pixel in groups.
     // Searches for identical pixels to group using recursive algorithm.
     // Each pixel is converted to a square in SVG.
-    std::string svgGroupPixel();
+    auto svgGroupPixel() -> std::string;
 
     // Process pixel in regions.
     // Searches for identical pixels to group using recursive algorithm.
     // Experimental. Simple algorithm for finding edges.
-    std::string svgRegions(bool onlyVertices = false);
+    auto svgRegions(bool onlyVertices = false) -> std::string;
 
     // Recursive function.
     void connect(Points &connected,                 // Temporary storage of nearby points.

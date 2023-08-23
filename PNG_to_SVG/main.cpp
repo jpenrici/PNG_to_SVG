@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-int main()
+auto main() -> int
 {
     // TEST
     std::string input   = "Resources/test.png";
