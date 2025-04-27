@@ -32,10 +32,10 @@ public:
     };
 
     // Export processed data in SVG.
-    auto exportSVG(std::string path, unsigned outputType = PIXEL) -> bool;
+    auto exportSVG(std::string svg_path, unsigned outputType = PIXEL) -> bool;
 
     // Load file and process binary data from PNG file.
-    auto load(std::string path) -> bool;
+    auto load(std::string png_path) -> bool;
 
     // View details of the processed image in the terminal. If imageData true displays RGBA data.
     void summary(bool imageData = false);
