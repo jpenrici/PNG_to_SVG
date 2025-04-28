@@ -10,7 +10,7 @@ ImgTool::~ImgTool() { std::cout << "Image Tool stoped!\n"; }
 auto ImgTool::load(std::string png_path) -> bool {
   const std::filesystem::path p(png_path);
   if (!std::filesystem::exists(p)) {
-    std::cerr << "File not found!\n";
+    std::cerr << "Error loading PNG image file. File not found!\n";
     return false;
   }
 
@@ -18,7 +18,7 @@ auto ImgTool::load(std::string png_path) -> bool {
   std::transform(extension.begin(), extension.end(), extension.begin(),
                  ::toupper);
   if (!extension.ends_with(".PNG")) {
-    std::cerr << "Invalid file!\n";
+    std::cerr << "Error loading PNG image file. Invalid file extension!\n";
     return false;
   }
 
@@ -174,6 +174,7 @@ auto ImgTool::load(std::string png_path) -> bool {
                                                   Recon_b(row, col),
                                                   Recon_c(row, col));
               } else {
+                std::cerr << "Error processing image!\n";
                 std::cerr << "Unknown filter type: " << filter_type << '\n';
                 break;
               }
@@ -195,9 +196,11 @@ auto ImgTool::load(std::string png_path) -> bool {
       // Exit.
       delete[] memblock;
     }
-  } catch (...) {
-    std::cerr << "Error processing image!\n";
+  } catch (const std::exception &ex) {
+    std::cerr << "Error processing image!\n" << ex.what() << '\n';
     return false;
+  } catch (...) {
+    std::cerr << "Unknown error processing image!\n";
   }
 
   return currentImage.status;
@@ -209,7 +212,8 @@ void ImgTool::summary(bool imageData) {
 
 auto ImgTool::exportSVG(std::string svg_path, unsigned outputType) -> bool {
   if (!currentImage.status) {
-    std::cerr << "There was something wrong!\n";
+    std::cerr << "Error exporting SVG file! An error occurred while processing "
+                 "the image!\n";
     return false;
   }
 
@@ -504,46 +508,36 @@ auto ImgTool::svgRegions(bool onlyVertices) -> std::string {
 }
 
 void ImgTool::connect(Points &connected, std::vector<RGBA> &image,
-                      unsigned int rows, unsigned int cols, unsigned int row,
-                      unsigned int col, RGBA rgba, bool eightDirectional) {
-  if (row < 0 || row > rows || col < 0 || col > cols) {
-    return;
-  }
+                      unsigned rows, unsigned cols, unsigned row, unsigned col,
+                      RGBA rgba, bool eightDirectional) {
+  // Iterative algorithm for connecting pixels using stack.
+  std::vector<std::pair<unsigned, unsigned>> stack;
+  stack.push_back({row, col});
 
-  if (image[row * cols + col].empty()) {
-    return;
-  }
+  while (!stack.empty()) {
+    auto [r, c] = stack.back();
+    stack.pop_back();
 
-  auto pixel = image[row * cols + col];
-  if (pixel.A == 0) {
-    return;
-  }
-  if (!rgba.equal(pixel)) {
-    return;
-  }
+    if (r >= rows || c >= cols || image[r * cols + c].empty() ||
+        image[r * cols + c].A == 0 || !rgba.equal(image[r * cols + c])) {
+      continue;
+    }
 
-  // Update data
-  connected.emplace_back(Point(col, row));
-  image[row * cols + col] = RGBA();
+    connected.emplace_back(Point(c, r));
+    image[r * cols + c] = RGBA();
 
-  // Recursion
-  connect(connected, image, rows, cols, row, col + 1, rgba,
-          eightDirectional); // right
-  connect(connected, image, rows, cols, row + 1, col, rgba,
-          eightDirectional); // down
-  connect(connected, image, rows, cols, row, col - 1, rgba,
-          eightDirectional); // left
-  connect(connected, image, rows, cols, row - 1, col, rgba,
-          eightDirectional); // up
-  if (eightDirectional) {
-    connect(connected, image, rows, cols, row + 1, col + 1, rgba,
-            eightDirectional); // right, down
-    connect(connected, image, rows, cols, row + 1, col - 1, rgba,
-            eightDirectional); // left, down
-    connect(connected, image, rows, cols, row - 1, col + 1, rgba,
-            eightDirectional); // right, up
-    connect(connected, image, rows, cols, row - 1, col - 1, rgba,
-            eightDirectional); // left, up
+    // Add neighbors
+    stack.push_back({r, c + 1}); // right
+    stack.push_back({r + 1, c}); // down
+    stack.push_back({r, c - 1}); // left
+    stack.push_back({r - 1, c}); // up
+
+    if (eightDirectional) {
+      stack.push_back({r + 1, c + 1}); // right, down
+      stack.push_back({r + 1, c - 1}); // left, down
+      stack.push_back({r - 1, c + 1}); // right, up
+      stack.push_back({r - 1, c - 1}); // left, up
+    }
   }
 }
 
