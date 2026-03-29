@@ -13,11 +13,10 @@
 
 #include "svgToolBox.hpp"
 
-#define RGBA smalltoolbox::Color::RGBA
-
 using smalltoolbox::IO;
 using smalltoolbox::Point;
 using smalltoolbox::SVG;
+using RGBA = smalltoolbox::Color::RGBA;
 
 class ImgTool {
 public:
@@ -62,10 +61,10 @@ private:
     long long int limit = 256 * 256;
 
     // Points to draw a pixel.
-    auto rect(Point origin, unsigned width, unsigned height) -> Points;
+    auto rect(Point origin, unsigned width, unsigned height) -> std::vector<Point>;
 
     // SVG element.
-    auto draw(std::string label, RGBA pixel, Points points) -> std::string;
+    auto draw(std::string label, RGBA pixel, std::vector<Point> points) -> std::string;
 
     // Process separate pixels.
     // Each pixel is converted to a square in SVG.
@@ -82,7 +81,7 @@ private:
     auto svgRegions(bool onlyVertices = false) -> std::string;
 
     // Recursive function.
-    void connect(Points &connected,                 // Temporary storage of nearby points.
+    void connect(std::vector<Point> &connected,                 // Temporary storage of nearby points.
                  std::vector<RGBA> &image,          // Temporary matrix or image copy.
                  unsigned rows, unsigned cols,      // Image vector size.
                  unsigned row, unsigned col,        // Starting point.

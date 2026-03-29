@@ -1,21 +1,17 @@
-#ifndef SMALLTOOLBOX_H_
-#define SMALLTOOLBOX_H_
+#pragma once
 
 #include <algorithm>
 #include <cmath>
 #include <ctime>
 #include <fstream>
 #include <iostream>
-#include <map>
 #include <string>
 #include <vector>
+#include <map>
 
 namespace smalltoolbox {
 
-#define Numbers std::vector<double>
-#define Points std::vector<smalltoolbox::Point>
-#define Strings std::vector<std::string>
-#define PI std::numbers::pi
+inline constexpr auto PI = std::numbers::pi;
 
 class Text {
 
@@ -215,8 +211,9 @@ public:
   }
 
   // Returns each coordinate by adding value.
-  template <typename T> static auto sum(Points points, T value) -> Points {
-    Points result{};
+  template <typename T> static auto sum(std::vector<Point> points,
+                  T value) -> std::vector<Point> {
+    std::vector<Point> result{};
     for (const auto &p : points) {
       result.push_back(p + value);
     }
@@ -224,7 +221,7 @@ public:
   }
 
   // Sum : Point (Total X axis, Total Y axis).
-  static auto total(const Points &points) -> Point {
+  static auto total(const std::vector<Point> &points) -> Point {
     Point sum;
     for (auto point : points) {
       sum += point;
@@ -234,7 +231,8 @@ public:
   }
 
   // Average : Point (Total X axis / Points, Total Y axis / Points).
-  static auto average(const Points &points, Point &point) -> bool {
+  static auto average(const std::vector<Point> &points,
+                      Point &point) -> bool {
     if (points.empty()) {
       point = Point(0, 0);
       return false;
@@ -262,24 +260,25 @@ public:
   }
 
   // Sort the points clockwise using center point.
-  static auto organize(Point center, Points points) -> Points {
+  static auto organize(Point center,
+                       std::vector<Point> points) -> std::vector<Point> {
     if (points.size() < 2) {
       return points;
     }
 
     // Map : Angle x Point.
-    std::map<double, Points> mapPoint;
+    std::map<double, std::vector<Point>> mapPoint;
 
     for (auto value : points) {
       auto key = center.angle(value);
       if (mapPoint.find(key) == mapPoint.end()) {
-        mapPoint.insert(make_pair(key, Points{value}));
+        mapPoint.insert(make_pair(key, std::vector<Point>{value}));
       } else {
         mapPoint[key].push_back(value);
       }
     }
 
-    Points result;
+    std::vector<Point> result;
     for (const auto &item : mapPoint) {
       for (auto point : item.second) {
         result.push_back(point);
@@ -301,7 +300,7 @@ static const Point Zero = Point(0, 0);
 class Base {
 
   // Store the last configuration.
-  Points vertices;
+  std::vector<Point> vertices;
 
   Point last_first, last_second, last_third, last_fourth;
 
@@ -338,7 +337,8 @@ public:
   Base() = default;
   ~Base() = default;
 
-  auto setup(const Points &points) -> Points {
+  auto setup(const std::vector<Point> &points)
+      -> std::vector<Point> {
     if (points.size() < 2) {
       vertices.clear();
       return vertices;
@@ -365,7 +365,7 @@ public:
   }
 
   // Returns the current vertices.
-  auto points() -> Points {
+  auto points() -> std::vector<Point> {
     if (state()) {
       update(first, second, third, fourth);
     }
@@ -394,7 +394,8 @@ public:
 
   // Rectangle: Points (x1,y1),(x2,y2),(x3,y3),(x4,y4)
   // Returns vertices.
-  auto setup(Point first, Point second, Point third, Point fourth) -> Points {
+  auto setup(Point first, Point second, Point third, Point fourth)
+      -> std::vector<Point> {
     Base::setup({first, second, third, fourth});
     label = "Rectangle";
 
@@ -403,7 +404,8 @@ public:
 
   // Rectangle : Point (x,y), width and heigth.
   // Returns vertices.
-  auto setup(Point origin, double width, double heigth) -> Points {
+  auto setup(Point origin, double width, double heigth)
+      -> std::vector<Point> {
     return setup(origin, origin + Point(width, 0),
                  origin + Point(width, heigth), origin + Point(0, heigth));
   }
@@ -461,13 +463,13 @@ public:
   // Polygon and Polyline.
   // points : Points vector (x,y).
   struct NormalShape : Style {
-    Points points{};
+    std::vector<Point> points{};
 
     NormalShape() = default;
 
     NormalShape(std::string name, std::string fill, std::string stroke,
                 double strokeWidth, double fillOpacity, double strokeOpacity,
-                Points points)
+                std::vector<Point> points)
         : Style(std::move(name), std::move(fill), std::move(stroke),
                 strokeWidth, fillOpacity, strokeOpacity),
           points{std::move(points)} {}
@@ -606,28 +608,14 @@ public:
 
     RGBA() = default;
 
-    RGBA(int r, int g, int b, int a) : RGBA(std::vector<int>{r, g, b, a}) {}
+    RGBA(int r, int g, int b, int a) : R{r}, G{g}, B{b}, A{a} {
+        clamp();
+    };
 
-    explicit RGBA(std::vector<int> rgba) : RGBA() {
-      switch (rgba.size()) {
-      case 4:
-        A = rgba[3];
-      case 3:
-        B = rgba[2];
-      case 2:
-        G = rgba[1];
-      case 1:
-        R = rgba[0];
-        break;
-      default:
-        break;
-      }
-
-      R = R < 0 ? 0 : R % 256;
-      G = G < 0 ? 0 : G % 256;
-      B = B < 0 ? 0 : B % 256;
-      A = A < 0 ? 0 : A % 256;
-    }
+    explicit RGBA(std::array<int, 4> rgba)
+        : R{rgba[0]}, G{rgba[1]}, B{rgba[2]}, A{rgba[3]} {
+        clamp();
+    };
 
     auto operator==(RGBA rgba) const -> bool { return equal(rgba); }
 
@@ -641,9 +629,15 @@ public:
       return {std::to_string(R) + "," + std::to_string(G) + "," +
               std::to_string(B) + (alpha ? "," + std::to_string(A) : "")};
     }
+
+private:
+    void clamp() {
+        R = R < 0 ? 0 : R % 256;
+        G = G < 0 ? 0 : G % 256;
+        B = B < 0 ? 0 : B % 256;
+        A = A < 0 ? 0 : A % 256;
+    }
   };
 };
 
 } // namespace smalltoolbox
-
-#endif // SMALLTOOLBOX_H_

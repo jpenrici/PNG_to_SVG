@@ -331,7 +331,7 @@ auto ImgTool::svgRegions(bool onlyVertices) -> std::string {
       auto index = row * cols + col;
       auto pixel = original[index];
       if (!original[index].empty()) {
-        Points connected;
+        std::vector<Point> connected;
         connect(connected, original, rows, cols, row, col, pixel);
         if (!connected.empty()) {
           // Analyze Connected Points.
@@ -507,9 +507,10 @@ auto ImgTool::svgRegions(bool onlyVertices) -> std::string {
   return SVG::svg(cols * width, rows * height, figure, SVG::Metadata());
 }
 
-void ImgTool::connect(Points &connected, std::vector<RGBA> &image,
-                      unsigned rows, unsigned cols, unsigned row, unsigned col,
-                      RGBA rgba, bool eightDirectional) {
+void ImgTool::connect(std::vector<smalltoolbox::Point> &connected,
+                      std::vector<RGBA> &image, unsigned rows, unsigned cols,
+                      unsigned row, unsigned col, RGBA rgba,
+                      bool eightDirectional) {
   // Iterative algorithm for connecting pixels using stack.
   std::vector<std::pair<unsigned, unsigned>> stack;
   stack.push_back({row, col});
@@ -542,8 +543,8 @@ void ImgTool::connect(Points &connected, std::vector<RGBA> &image,
 }
 
 auto ImgTool::rect(Point origin, unsigned int width, unsigned int height)
-    -> Points {
-  return Points{
+    -> std::vector<Point> {
+  return std::vector<Point>{
       Point(origin.X.value * width, origin.Y.value * height),
       Point(origin.X.value * width + width, origin.Y.value * height),
       Point(origin.X.value * width + width, origin.Y.value * height + height),
@@ -551,7 +552,7 @@ auto ImgTool::rect(Point origin, unsigned int width, unsigned int height)
       Point(origin.X.value * width, origin.Y.value * height)};
 }
 
-auto ImgTool::draw(std::string label, RGBA pixel, Points points)
+auto ImgTool::draw(std::string label, RGBA pixel, std::vector<Point> points)
     -> std::string {
   return SVG::polyline(
       SVG::NormalShape(label,                                   // name.

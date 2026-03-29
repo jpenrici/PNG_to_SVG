@@ -1,14 +1,16 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
 
 project(SimplePng2Svg LANGUAGES CXX)
 
 set(PROGRAM_NAME png2svg)
 
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include_directories(include)
-file(GLOB SOURCES src/*.cpp)
+set(SOURCES ./src/main.cpp ./src/png2svg.cpp)
 
 set(RESOURCE_FILES images/test.png)
 
@@ -21,10 +23,13 @@ if(ZLIB_FOUND)
   message(STATUS "  Include Directories: ${ZLIB_INCLUDE_DIRS}")
   message(STATUS "  Libraries: ${ZLIB_LIBRARIES}")
 else()
-  message(FATAL_ERROR "ZLIB not found. Please ensure the ZLIB library is installed on your system.")
+  message(
+    FATAL_ERROR
+      "ZLIB not found. Please ensure the ZLIB library is installed on your system."
+  )
 endif()
 
-target_link_libraries (${PROGRAM_NAME} PUBLIC ZLIB::ZLIB)
+target_link_libraries(${PROGRAM_NAME} PUBLIC ZLIB::ZLIB)
 
 file(COPY ${RESOURCE_FILES} DESTINATION ${CMAKE_BINARY_DIR}/Resources)
 
