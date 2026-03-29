@@ -16,14 +16,14 @@
 using smalltoolbox::IO;
 using smalltoolbox::Point;
 using smalltoolbox::SVG;
-using RGBA = smalltoolbox::Color::RGBA;
+using smalltoolbox::Color;
 
 class ImgTool {
 public:
     ImgTool();
     ~ImgTool();
 
-    enum Type {
+    enum class Type {
         PIXEL,      // Converts pixel to small squares.
         GROUP,      // Converts regions with equal and close pixels into group of small squares.
         REGIONS1,   // Experimental. Simple edge detection. Generated SVG contains border pixels.
@@ -31,10 +31,10 @@ public:
     };
 
     // Export processed data in SVG.
-    auto exportSVG(std::string svg_path, unsigned outputType = PIXEL) -> bool;
+    auto exportSVG(std::string_view svg_path, Type outputType = Type::PIXEL) -> bool;
 
     // Load file and process binary data from PNG file.
-    auto load(std::string png_path) -> bool;
+    auto load(std::string_view png_path) -> bool;
 
     // View details of the processed image in the terminal. If imageData true displays RGBA data.
     void summary(bool imageData = false);
@@ -52,19 +52,19 @@ private:
         unsigned int compression{0};        // compression method.
         unsigned int filter{0};             // filter method.
         unsigned int interlace{0};          // interlace method.
-        std::vector<RGBA> image{};          // image pixel translated into RGBA.
+        std::vector<Color::RGBA> image{};   // image pixel translated into RGBA.
 
         std::string toStr(bool imageData);  // text data.
     };
 
     IMG currentImage;
-    long long int limit = 256 * 256;
+    static constexpr long long int limit = 256 * 256;
 
     // Points to draw a pixel.
     auto rect(Point origin, unsigned width, unsigned height) -> std::vector<Point>;
 
     // SVG element.
-    auto draw(std::string label, RGBA pixel, std::vector<Point> points) -> std::string;
+    auto draw(std::string label, Color::RGBA pixel, std::vector<Point> points) -> std::string;
 
     // Process separate pixels.
     // Each pixel is converted to a square in SVG.
@@ -81,10 +81,10 @@ private:
     auto svgRegions(bool onlyVertices = false) -> std::string;
 
     // Recursive function.
-    void connect(std::vector<Point> &connected,                 // Temporary storage of nearby points.
-                 std::vector<RGBA> &image,          // Temporary matrix or image copy.
+    void connect(std::vector<Point> &connected,     // Temporary storage of nearby points.
+                 std::vector<Color::RGBA> &image,   // Temporary matrix or image copy.
                  unsigned rows, unsigned cols,      // Image vector size.
                  unsigned row, unsigned col,        // Starting point.
-                 RGBA rgba,                         // Searched color.
+                 Color::RGBA rgba,                  // Searched color.
                  bool eightDirectional = false);    // Search movement in the matrix.
 };

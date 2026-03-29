@@ -29,6 +29,7 @@ else()
   )
 endif()
 
+target_link_options(${PROGRAM_NAME} PRIVATE -static-libstdc++ -static-libgcc)
 target_link_libraries(${PROGRAM_NAME} PUBLIC ZLIB::ZLIB)
 
 file(COPY ${RESOURCE_FILES} DESTINATION ${CMAKE_BINARY_DIR}/Resources)

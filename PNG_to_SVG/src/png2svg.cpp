@@ -1,261 +1,276 @@
 #include "png2svg.h"
 
 #include <filesystem>
+#include <print>
+#include <span>
 #include <zlib.h>
 
-ImgTool::ImgTool() { std::cout << "Image Tool running!\n"; }
+ImgTool::ImgTool() { std::println("Image Tool running!"); }
+ImgTool::~ImgTool() { std::println("Image Tool stopped!"); }
 
-ImgTool::~ImgTool() { std::cout << "Image Tool stoped!\n"; }
+// PNG chunk structure
+struct Chunk {
+  std::string type;
+  std::vector<std::byte> data;
+};
 
-auto ImgTool::load(std::string png_path) -> bool {
-  const std::filesystem::path p(png_path);
-  if (!std::filesystem::exists(p)) {
-    std::cerr << "Error loading PNG image file. File not found!\n";
-    return false;
-  }
+static auto readUint32(std::span<const std::byte> buffer, size_t offset)
+    -> uint32_t {
+  return (std::to_integer<uint32_t>(buffer[offset]) << 24) |
+         (std::to_integer<uint32_t>(buffer[offset + 1]) << 16) |
+         (std::to_integer<uint32_t>(buffer[offset + 2]) << 8) |
+         std::to_integer<uint32_t>(buffer[offset + 3]);
+}
 
-  std::string extension{p.extension()};
-  std::transform(extension.begin(), extension.end(), extension.begin(),
-                 ::toupper);
-  if (!extension.ends_with(".PNG")) {
-    std::cerr << "Error loading PNG image file. Invalid file extension!\n";
-    return false;
-  }
+static auto readChunks(std::span<const std::byte> buffer)
+    -> std::vector<Chunk> {
+  std::vector<Chunk> chunks;
+  size_t offset = 8; // skip PNG signature
 
-  // Process PNG.
-  char *memblock = nullptr;
-  std::ifstream::pos_type size{0};
-  try {
-    std::cout << "Load: " << png_path << '\n';
-    std::ifstream file(png_path, std::ios::binary | std::ios::ate);
-    // Open PNG file.
-    if (file.is_open()) {
-      size = file.tellg();
-      memblock = new char[size];
-      file.seekg(0, std::ios::beg);
-      file.read(memblock, size);
-      file.close();
-      // Update data.
-      currentImage.path = p.parent_path();
-      currentImage.filename = p.filename();
-      currentImage.bytes = size;
-      // Check PNG signature.
-      if (std::string(memblock, memblock + 8) ==
-          std::string("\x89PNG\r\n\x1a\n")) {
-        // Find chunk IHDR.
-        for (unsigned i = 0; i < size; i++) {
-          currentImage.status = std::string(memblock + i, memblock + i + 4) ==
-                                std::string("IHDR");
-          if (currentImage.status) {
-            currentImage.width = int((unsigned char)(memblock[i + 4]) << 24 |
-                                     (unsigned char)(memblock[i + 5]) << 16 |
-                                     (unsigned char)(memblock[i + 6]) << 8 |
-                                     (unsigned char)(memblock[i + 7]));
-            currentImage.height = int((unsigned char)(memblock[i + 8]) << 24 |
-                                      (unsigned char)(memblock[i + 9]) << 16 |
-                                      (unsigned char)(memblock[i + 10]) << 8 |
-                                      (unsigned char)(memblock[i + 11]));
-            currentImage.bitDepth = int((unsigned char)memblock[i + 12]);
-            currentImage.colorType = int((unsigned char)memblock[i + 13]);
-            currentImage.compression = int((unsigned char)memblock[i + 14]);
-            currentImage.filter = int((unsigned char)memblock[i + 15]);
-            currentImage.interlace = int((unsigned char)memblock[i + 16]);
-            break;
-          }
-        }
-        // Validate for this algorithm.
-        currentImage.status =
-            (currentImage.width > 0) && (currentImage.height > 0) &&
-            (currentImage.bitDepth == 8) &&    // 8 bits.
-            (currentImage.colorType == 6) &&   // Truecolour with alpha.
-            (currentImage.compression == 0) && // Standard.
-            (currentImage.filter == 0) &&      // Filter method 0.
-            (currentImage.interlace == 0);     // No interlacing.
-        int bytesPerPixel = 4;
-        int expectedLength =
-            currentImage.height * (1 + currentImage.width * bytesPerPixel);
-        // Find chunk IDAT.
-        std::vector<int> IDAT_data;
-        if (currentImage.status) {
-          for (unsigned i = 0; i < size; i++) {
-            if (std::string(memblock + i, memblock + i + 4) ==
-                std::string("IDAT")) {
-              // Data length.
-              unsigned int length = int((unsigned char)(memblock[i - 4]) << 24 |
-                                        (unsigned char)(memblock[i - 3]) << 16 |
-                                        (unsigned char)(memblock[i - 2]) << 8 |
-                                        (unsigned char)(memblock[i - 1]));
-              // Prepare.
-              char *valuesIn, *valuesOut;
-              valuesIn = new char[length + 1];
-              valuesOut = new char[expectedLength + 1];
-              for (unsigned j = 0; j < length; j++) {
-                valuesIn[j] = memblock[i + 4 + j];
-              }
-              // Decompress.
-              z_stream infstream;
-              infstream.zalloc = Z_NULL;
-              infstream.zfree = Z_NULL;
-              infstream.opaque = Z_NULL;
-              infstream.avail_in = length;
-              infstream.next_in = (Bytef *)valuesIn;
-              infstream.avail_out = expectedLength;
-              infstream.next_out = (Bytef *)valuesOut;
-              inflateInit(&infstream);
-              inflate(&infstream, Z_NO_FLUSH);
-              inflateEnd(&infstream);
-              // Store.
-              for (unsigned j = 0; j < expectedLength; j++) {
-                IDAT_data.emplace_back(int((unsigned char)valuesOut[j]));
-              }
-            }
-            if (std::string(memblock + i, memblock + i + 4) ==
-                std::string("IEND")) {
-              break;
-            }
-          }
-
-          // Decode.
-          std::vector<int> Recon; // Storage of reconstructed values.
-          int stride = currentImage.width * bytesPerPixel;
-
-          auto paethPredictor = [](int a, int b, int c) {
-            int p = a + b - c;
-            int pa = abs(p - a);
-            int pb = abs(p - b);
-            int pc = abs(p - c);
-            int pr = 0;
-            if (pa <= pb && pa <= pc) {
-              pr = a;
-            } else if (pb <= pc) {
-              pr = b;
-            } else {
-              pr = c;
-            }
-            return pr;
-          };
-
-          auto Recon_a = [&](int r, int c) {
-            return c >= bytesPerPixel ? Recon[r * stride + c - bytesPerPixel]
-                                      : 0;
-          };
-
-          auto Recon_b = [&](int r, int c) {
-            return r > 0 ? Recon[(r - 1) * stride + c] : 0;
-          };
-
-          auto Recon_c = [&](int r, int c) {
-            return r > 0 && c >= bytesPerPixel
-                       ? Recon[(r - 1) * stride + c - bytesPerPixel]
-                       : 0;
-          };
-
-          int i = 0;
-          int Recon_x = 0;
-          for (unsigned row = 0; row < currentImage.height; row++) {
-            int filter_type = IDAT_data[i++];
-            for (unsigned col = 0; col < stride; col++) {
-              int Filt_x = IDAT_data[i++];
-              if (filter_type == 0) {
-                // None.
-                Recon_x = Filt_x;
-              } else if (filter_type == 1) {
-                // Sub.
-                Recon_x = Filt_x + Recon_a(row, col);
-              } else if (filter_type == 2) {
-                // Up.
-                Recon_x = Filt_x + Recon_b(row, col);
-              } else if (filter_type == 3) {
-                // Average.
-                Recon_x = Filt_x + (Recon_a(row, col) + Recon_b(row, col)) / 2;
-              } else if (filter_type == 4) {
-                // Paeth.
-                Recon_x = Filt_x + paethPredictor(Recon_a(row, col),
-                                                  Recon_b(row, col),
-                                                  Recon_c(row, col));
-              } else {
-                std::cerr << "Error processing image!\n";
-                std::cerr << "Unknown filter type: " << filter_type << '\n';
-                break;
-              }
-              Recon.emplace_back(Recon_x & 0xff);
-            }
-          }
-
-          // Update data.
-          currentImage.status = (!Recon.empty() && Recon.size() % 4 == 0);
-          if (currentImage.status) {
-            for (unsigned i = 0; i < Recon.size(); i += 4) {
-              currentImage.image.emplace_back(
-                  RGBA(Recon[i], Recon[i + 1], Recon[i + 2], Recon[i + 3]));
-            }
-          }
-        }
-      }
-
-      // Exit.
-      delete[] memblock;
+  while (offset + 8 <= buffer.size()) {
+    uint32_t length = readUint32(buffer, offset);
+    std::string type(4, '\0');
+    for (int i = 0; i < 4; ++i) {
+      type[i] = std::to_integer<char>(buffer[offset + 4 + i]);
     }
-  } catch (const std::exception &ex) {
-    std::cerr << "Error processing image!\n" << ex.what() << '\n';
+
+    offset += 8; // length + type
+
+    if (offset + length > buffer.size())
+      break;
+
+    std::vector<std::byte> data(buffer.begin() + offset,
+                                buffer.begin() + offset + length);
+    chunks.push_back({type, std::move(data)});
+
+    offset += length + 4; // data + CRC
+  }
+
+  return chunks;
+}
+
+auto ImgTool::load(std::string_view png_path) -> bool {
+  const std::filesystem::path p(png_path);
+
+  if (!std::filesystem::exists(p)) {
+    std::println(stderr, "Error loading PNG image file. File not found!");
     return false;
-  } catch (...) {
-    std::cerr << "Unknown error processing image!\n";
+  }
+
+  auto extension = p.extension().string();
+  std::ranges::transform(extension, extension.begin(), ::toupper);
+  if (extension != ".PNG") {
+    std::println(stderr,
+                 "Error loading PNG image file. Invalid file extension!");
+    return false;
+  }
+
+  // Read file into buffer
+  std::ifstream file(p, std::ios::binary | std::ios::ate);
+  if (!file.is_open()) {
+    std::println(stderr, "Error opening file: {}", png_path);
+    return false;
+  }
+
+  const auto size = static_cast<size_t>(file.tellg());
+  std::vector<std::byte> memblock(size);
+  file.seekg(0, std::ios::beg);
+  file.read(reinterpret_cast<char *>(memblock.data()), size);
+  file.close();
+
+  std::println("Load: {}", png_path);
+
+  // Update data
+  currentImage.path = p.parent_path().string();
+  currentImage.filename = p.filename().string();
+  currentImage.bytes = size;
+
+  // Validate PNG signature
+  constexpr std::array<std::byte, 8> PNG_SIGNATURE{
+      std::byte{0x89}, std::byte{0x50}, std::byte{0x4E}, std::byte{0x47},
+      std::byte{0x0D}, std::byte{0x0A}, std::byte{0x1A}, std::byte{0x0A}};
+
+  if (!std::equal(PNG_SIGNATURE.begin(), PNG_SIGNATURE.end(),
+                  memblock.begin())) {
+    std::println(stderr, "Invalid PNG signature!");
+    return false;
+  }
+
+  // Parse chunks
+  const auto chunks = readChunks(memblock);
+
+  // Read IHDR
+  auto ihdr = std::ranges::find_if(
+      chunks, [](const Chunk &c) { return c.type == "IHDR"; });
+
+  if (ihdr == chunks.end() || ihdr->data.size() < 13) {
+    std::println(stderr, "IHDR chunk not found or invalid!");
+    return false;
+  }
+
+  auto span = std::span(ihdr->data);
+  currentImage.width = readUint32(span, 0);
+  currentImage.height = readUint32(span, 4);
+  currentImage.bitDepth = std::to_integer<unsigned>(span[8]);
+  currentImage.colorType = std::to_integer<unsigned>(span[9]);
+  currentImage.compression = std::to_integer<unsigned>(span[10]);
+  currentImage.filter = std::to_integer<unsigned>(span[11]);
+  currentImage.interlace = std::to_integer<unsigned>(span[12]);
+
+  // Validate for this algorithm
+  currentImage.status =
+      (currentImage.width > 0) && (currentImage.height > 0) &&
+      (currentImage.bitDepth == 8) &&    // 8 bits
+      (currentImage.colorType == 6) &&   // Truecolour with alpha
+      (currentImage.compression == 0) && // Standard
+      (currentImage.filter == 0) &&      // Filter method 0
+      (currentImage.interlace == 0);     // No interlacing
+
+  if (!currentImage.status) {
+    std::println(stderr, "PNG format not supported by this algorithm!");
+    return false;
+  }
+
+  // Collect and decompress IDAT chunks
+  constexpr int bytesPerPixel = 4;
+  const int expectedLength =
+      currentImage.height * (1 + currentImage.width * bytesPerPixel);
+
+  std::vector<std::byte> compressed;
+  for (const auto &chunk : chunks) {
+    if (chunk.type == "IDAT") {
+      compressed.insert(compressed.end(), chunk.data.begin(), chunk.data.end());
+    }
+    if (chunk.type == "IEND")
+      break;
+  }
+
+  std::vector<std::byte> decompressed(expectedLength);
+  z_stream infstream{};
+  infstream.avail_in = static_cast<uInt>(compressed.size());
+  infstream.next_in = reinterpret_cast<Bytef *>(compressed.data());
+  infstream.avail_out = static_cast<uInt>(expectedLength);
+  infstream.next_out = reinterpret_cast<Bytef *>(decompressed.data());
+
+  if (inflateInit(&infstream) != Z_OK) {
+    std::println(stderr, "Failed to initialize zlib!");
+    return false;
+  }
+  inflate(&infstream, Z_NO_FLUSH);
+  inflateEnd(&infstream);
+
+  // Decode filters
+  std::vector<int> Recon;
+  Recon.reserve(currentImage.height * currentImage.width * bytesPerPixel);
+  const int stride = currentImage.width * bytesPerPixel;
+
+  auto paethPredictor = [](int a, int b, int c) -> int {
+    int p = a + b - c;
+    int pa = std::abs(p - a);
+    int pb = std::abs(p - b);
+    int pc = std::abs(p - c);
+    if (pa <= pb && pa <= pc)
+      return a;
+    if (pb <= pc)
+      return b;
+    return c;
+  };
+
+  auto Recon_a = [&](int r, int c) -> int {
+    return c >= bytesPerPixel ? Recon[r * stride + c - bytesPerPixel] : 0;
+  };
+  auto Recon_b = [&](int r, int c) -> int {
+    return r > 0 ? Recon[(r - 1) * stride + c] : 0;
+  };
+  auto Recon_c = [&](int r, int c) -> int {
+    return (r > 0 && c >= bytesPerPixel)
+               ? Recon[(r - 1) * stride + c - bytesPerPixel]
+               : 0;
+  };
+
+  size_t i = 0;
+  for (unsigned row = 0; row < currentImage.height; ++row) {
+    const int filter_type = std::to_integer<int>(decompressed[i++]);
+    for (int col = 0; col < stride; ++col) {
+      const int Filt_x = std::to_integer<int>(decompressed[i++]);
+      int Recon_x = 0;
+
+      switch (filter_type) {
+      case 0:
+        Recon_x = Filt_x;
+        break;
+      case 1:
+        Recon_x = Filt_x + Recon_a(row, col);
+        break;
+      case 2:
+        Recon_x = Filt_x + Recon_b(row, col);
+        break;
+      case 3:
+        Recon_x = Filt_x + (Recon_a(row, col) + Recon_b(row, col)) / 2;
+        break;
+      case 4:
+        Recon_x = Filt_x + paethPredictor(Recon_a(row, col), Recon_b(row, col),
+                                          Recon_c(row, col));
+        break;
+      [[unlikely]] default:
+        std::println(stderr, "Unknown filter type: {}", filter_type);
+        return false;
+      }
+      Recon.push_back(Recon_x & 0xff);
+    }
+  }
+
+  // Build RGBA image
+  currentImage.status = (!Recon.empty() && Recon.size() % 4 == 0);
+  if (currentImage.status) {
+    currentImage.image.reserve(Recon.size() / 4);
+    for (size_t j = 0; j < Recon.size(); j += 4) {
+      currentImage.image.emplace_back(
+          Color::RGBA(Recon[j], Recon[j + 1], Recon[j + 2], Recon[j + 3]));
+    }
   }
 
   return currentImage.status;
 }
 
 void ImgTool::summary(bool imageData) {
-  std::cout << currentImage.toStr(imageData);
+  std::println("{}", currentImage.toStr(imageData));
 }
 
-auto ImgTool::exportSVG(std::string svg_path, unsigned outputType) -> bool {
+auto ImgTool::exportSVG(std::string_view svg_path, ImgTool::Type outputType)
+    -> bool {
   if (!currentImage.status) {
-    std::cerr << "Error exporting SVG file! An error occurred while processing "
-                 "the image!\n";
+    std::println(stderr, "No image loaded!");
     return false;
   }
 
-  // Alert.
-  if ((currentImage.height * currentImage.width) > limit) {
-    std::cerr << "Algorithm Limit: " << limit << " px\n"
-              << "Image          : " << currentImage.filename << " ("
-              << currentImage.width * currentImage.height << " px). "
-              << "Converting to SVG is not recommended!\n";
+  if (static_cast<long long>(currentImage.image.size()) > limit) {
+    std::println(stderr, "Image too large! Limit: {} pixels", limit);
     return false;
   }
 
-  std::string svg{};
+  std::string figure;
   switch (outputType) {
-  case PIXEL:
-    std::cout << "Method: Pixel to Pixel.\n";
-    svg = svgPixel();
+  case Type::PIXEL:
+    figure = svgPixel();
     break;
-  case GROUP:
-    std::cout << "Method: Pixel grouped.\n";
-    svg = svgGroupPixel();
+  case Type::GROUP:
+    figure = svgGroupPixel();
     break;
-  case REGIONS1:
-    std::cout << "Method: Regions 1.\n"
-              << "This processing can take a long time!\n";
-    svg = svgRegions();
+  case Type::REGIONS1:
+    figure = svgRegions();
     break;
-  case REGIONS2:
-    std::cout << "Method: Regions 2.\n"
-              << "This processing can take a long time!\n";
-    svg = svgRegions(true);
-    break;
-  default:
+  case Type::REGIONS2:
+    figure = svgRegions(true);
     break;
   }
 
-  if (!svg.empty()) {
-    std::cout << "Conversion from PNG to SVG finished!\n"
-              << "Result: " << svg_path << '\n';
+  const bool saved = IO::save(figure, std::string(svg_path));
+  if (saved) {
+    std::println("Exported: {}", svg_path);
   }
 
-  return IO::save(svg, svg_path);
+  return saved;
 }
 
 auto ImgTool::svgPixel() -> std::string {
@@ -436,7 +451,7 @@ auto ImgTool::svgRegions(bool onlyVertices) -> std::string {
             for (unsigned c = 0; c < cols; c++) {
               int index = r * cols + c;
               if (matrix[index] != 2) {
-                image[index] = RGBA();
+                image[index] = Color::RGBA();
               }
             }
           }
@@ -508,9 +523,9 @@ auto ImgTool::svgRegions(bool onlyVertices) -> std::string {
 }
 
 void ImgTool::connect(std::vector<smalltoolbox::Point> &connected,
-                      std::vector<RGBA> &image, unsigned rows, unsigned cols,
-                      unsigned row, unsigned col, RGBA rgba,
-                      bool eightDirectional) {
+                      std::vector<Color::RGBA> &image, unsigned rows,
+                      unsigned cols, unsigned row, unsigned col,
+                      Color::RGBA rgba, bool eightDirectional) {
   // Iterative algorithm for connecting pixels using stack.
   std::vector<std::pair<unsigned, unsigned>> stack;
   stack.push_back({row, col});
@@ -525,7 +540,7 @@ void ImgTool::connect(std::vector<smalltoolbox::Point> &connected,
     }
 
     connected.emplace_back(Point(c, r));
-    image[r * cols + c] = RGBA();
+    image[r * cols + c] = Color::RGBA();
 
     // Add neighbors
     stack.push_back({r, c + 1}); // right
@@ -552,8 +567,8 @@ auto ImgTool::rect(Point origin, unsigned int width, unsigned int height)
       Point(origin.X.value * width, origin.Y.value * height)};
 }
 
-auto ImgTool::draw(std::string label, RGBA pixel, std::vector<Point> points)
-    -> std::string {
+auto ImgTool::draw(std::string label, Color::RGBA pixel,
+                   std::vector<Point> points) -> std::string {
   return SVG::polyline(
       SVG::NormalShape(label,                                   // name.
                        SVG::RGB2HEX(pixel.R, pixel.G, pixel.B), // fill color.
