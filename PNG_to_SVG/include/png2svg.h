@@ -13,10 +13,10 @@
 
 #include "svgToolBox.hpp"
 
+using smalltoolbox::Color;
 using smalltoolbox::IO;
 using smalltoolbox::Point;
 using smalltoolbox::SVG;
-using smalltoolbox::Color;
 
 class ImgTool {
 public:
@@ -24,10 +24,10 @@ public:
     ~ImgTool();
 
     enum class Type {
-        PIXEL,      // Converts pixel to small squares.
-        GROUP,      // Converts regions with equal and close pixels into group of small squares.
-        REGIONS1,   // Experimental. Simple edge detection. Generated SVG contains border pixels.
-        REGIONS2    // Experimental. Simple edge detection. SVG contains pixels grouped into vertices.
+        PIXEL, // Converts pixel to small squares.
+        GROUP, // Converts regions with equal and close pixels into group of small squares.
+        REGIONS1, // Experimental. Simple edge detection. Generated SVG contains border pixels.
+        REGIONS2 // Experimental. Simple edge detection. SVG contains pixels grouped into vertices.
     };
 
     // Export processed data in SVG.
@@ -40,21 +40,20 @@ public:
     void summary(bool imageData = false);
 
 private:
-
     struct IMG {
-        bool status{false};                 // state of image preparation (RGBA vector).
-        std::string path{};                 // path of input file.
-        std::string filename{};             // input file name.
-        unsigned long long bytes{0};        // file size.
-        unsigned int width{0}, height{0};   // image dimension in pixel.
-        unsigned int bitDepth{0};           // number of bits per sample or per palette index (not per pixel).
-        unsigned int colorType{0};          // image type (0:Grayscale, 2:Truecolor, 3:Indexed-color, 4:Grayscale Alpha, 6:Truecolor Alpha).
-        unsigned int compression{0};        // compression method.
-        unsigned int filter{0};             // filter method.
-        unsigned int interlace{0};          // interlace method.
-        std::vector<Color::RGBA> image{};   // image pixel translated into RGBA.
+        bool status { false }; // state of image preparation (RGBA vector).
+        std::string path {}; // path of input file.
+        std::string filename {}; // input file name.
+        unsigned long long bytes { 0 }; // file size.
+        unsigned int width { 0 }, height { 0 }; // image dimension in pixel.
+        unsigned int bitDepth { 0 }; // number of bits per sample or per palette index (not per pixel).
+        unsigned int colorType { 0 }; // image type (0:Grayscale, 2:Truecolor, 3:Indexed-color, 4:Grayscale Alpha, 6:Truecolor Alpha).
+        unsigned int compression { 0 }; // compression method.
+        unsigned int filter { 0 }; // filter method.
+        unsigned int interlace { 0 }; // interlace method.
+        std::vector<Color::RGBA> image {}; // image pixel translated into RGBA.
 
-        std::string toStr(bool imageData);  // text data.
+        std::string toStr(bool imageData); // text data.
     };
 
     IMG currentImage;
@@ -64,7 +63,7 @@ private:
     auto rect(Point origin, unsigned width, unsigned height) -> std::vector<Point>;
 
     // SVG element.
-    auto draw(std::string label, Color::RGBA pixel, std::vector<Point> points) -> std::string;
+    auto draw(std::string label, const Color::RGBA& pixel, std::vector<Point> points) -> std::string;
 
     // Process separate pixels.
     // Each pixel is converted to a square in SVG.
@@ -81,10 +80,10 @@ private:
     auto svgRegions(bool onlyVertices = false) -> std::string;
 
     // Recursive function.
-    void connect(std::vector<Point> &connected,     // Temporary storage of nearby points.
-                 std::vector<Color::RGBA> &image,   // Temporary matrix or image copy.
-                 unsigned rows, unsigned cols,      // Image vector size.
-                 unsigned row, unsigned col,        // Starting point.
-                 Color::RGBA rgba,                  // Searched color.
-                 bool eightDirectional = false);    // Search movement in the matrix.
+    void connect(std::vector<Point>& connected, // Temporary storage of nearby points.
+        std::vector<Color::RGBA>& image, // Temporary matrix or image copy.
+        unsigned rows, unsigned cols, // Image vector size.
+        unsigned row, unsigned col, // Starting point.
+        const Color::RGBA rgba, // Searched color.
+        bool eightDirectional = false); // Search movement in the matrix.
 };

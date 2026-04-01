@@ -3,14 +3,13 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <print>
 #include <string>
 #include <vector>
-#include <filesystem>
-#include <print>
-
 
 namespace smalltoolbox {
 
@@ -73,8 +72,8 @@ class Check {
 public:
     // Compare groups (vector).
     template <typename T>
-    static auto equal(const std::vector<T> &group1, const std::vector<T> &group2,
-                      bool compareOrder = false) -> bool
+    static auto equal(const std::vector<T>& group1, const std::vector<T>& group2,
+        bool compareOrder = false) -> bool
     {
         if (group1.size() != group2.size()) {
             return false;
@@ -92,8 +91,8 @@ class IO {
 
 public:
     // Save text file.
-    static auto save(const std::string &text,
-                     const std::filesystem::path &filePath = "output.txt") -> bool
+    static auto save(const std::string& text,
+        const std::filesystem::path& filePath = "output.txt") -> bool
     {
         if (text.empty()) {
             std::println(stderr, "Empty text! Export failed!");
@@ -115,7 +114,7 @@ public:
 class Point {
 
     struct Coordinate {
-        double value{0};
+        double value { 0 };
 
         auto toStr(bool trimZeros = false) const -> std::string
         {
@@ -128,24 +127,28 @@ public:
     Coordinate X, Y;
 
     // Label
-    std::string label{"Point"};
+    std::string label { "Point" };
 
     // Point (0, 0)
-    Point() : X{0}, Y{0} {};
+    Point()
+        : X { 0 }
+        , Y { 0 } { };
 
     // Point (x, y)
-    Point(double x, double y) : X{x}, Y{y} {};
+    Point(double x, double y)
+        : X { x }
+        , Y { y } { };
 
     ~Point() = default;
 
     auto operator+(Point point) const -> Point
     {
-        return {X.value + point.X.value, Y.value + point.Y.value};
+        return { X.value + point.X.value, Y.value + point.Y.value };
     }
 
     auto operator+(double value) const -> Point
     {
-        return {X.value + value, Y.value + value};
+        return { X.value + value, Y.value + value };
     }
 
     void operator+=(Point point)
@@ -160,12 +163,12 @@ public:
 
     auto operator-(const Point point) const -> Point
     {
-        return {X.value - point.X.value, Y.value - point.Y.value};
+        return { X.value - point.X.value, Y.value - point.Y.value };
     }
 
     auto operator-(double value) const -> Point
     {
-        return {X.value - value, Y.value - value};
+        return { X.value - value, Y.value - value };
     }
 
     void operator-=(const Point point)
@@ -180,12 +183,12 @@ public:
 
     auto operator*(const Point point) const -> Point
     {
-        return {X.value * point.X.value, Y.value * point.Y.value};
+        return { X.value * point.X.value, Y.value * point.Y.value };
     }
 
     auto operator*(double value) const -> Point
     {
-        return {X.value * value, Y.value * value};
+        return { X.value * value, Y.value * value };
     }
 
     void operator*=(const Point point)
@@ -211,18 +214,19 @@ public:
     }
 
     // Returns each coordinate by adding value.
-    template <typename T> static auto sum(std::vector<Point> points,
-                                          T value) -> std::vector<Point>
+    template <typename T>
+    static auto sum(std::vector<Point> points,
+        T value) -> std::vector<Point>
     {
-        std::vector<Point> result{};
-        for (const auto &p : points) {
+        std::vector<Point> result {};
+        for (const auto& p : points) {
             result.push_back(p + value);
         }
         return result;
     }
 
     // Sum : Point (Total X axis, Total Y axis).
-    static auto total(const std::vector<Point> &points) -> Point
+    static auto total(const std::vector<Point>& points) -> Point
     {
         Point sum;
         for (auto point : points) {
@@ -233,8 +237,8 @@ public:
     }
 
     // Average : Point (Total X axis / Points, Total Y axis / Points).
-    static auto average(const std::vector<Point> &points,
-                        Point &point) -> bool
+    static auto average(const std::vector<Point>& points,
+        Point& point) -> bool
     {
         if (points.empty()) {
             point = Point(0, 0);
@@ -267,7 +271,7 @@ public:
 
     // Sort the points clockwise using center point.
     static auto organize(Point center,
-                         std::vector<Point> points) -> std::vector<Point>
+        std::vector<Point> points) -> std::vector<Point>
     {
         if (points.size() < 2) {
             return points;
@@ -279,15 +283,14 @@ public:
         for (auto value : points) {
             auto key = center.angle(value);
             if (mapPoint.find(key) == mapPoint.end()) {
-                mapPoint.insert(make_pair(key, std::vector<Point> {value}));
-            }
-            else {
+                mapPoint.insert(make_pair(key, std::vector<Point> { value }));
+            } else {
                 mapPoint[key].push_back(value);
             }
         }
 
         std::vector<Point> result;
-        for (const auto &item : mapPoint) {
+        for (const auto& item : mapPoint) {
             for (auto point : item.second) {
                 result.push_back(point);
             }
@@ -336,20 +339,19 @@ class Base {
 
     auto state() -> bool
     {
-        return (!first.equal(last_first) || !second.equal(last_second) ||
-                !third.equal(last_third) || !fourth.equal(last_fourth));
+        return (!first.equal(last_first) || !second.equal(last_second) || !third.equal(last_third) || !fourth.equal(last_fourth));
     }
 
 public:
     Point first, second, third, fourth;
 
-    std::string label{"Base"};
+    std::string label { "Base" };
 
     Base() = default;
     ~Base() = default;
 
-    auto setup(const std::vector<Point> &points)
-    -> std::vector<Point>
+    auto setup(const std::vector<Point>& points)
+        -> std::vector<Point>
     {
         if (points.size() < 2) {
             vertices.clear();
@@ -370,7 +372,7 @@ public:
         return vertices;
     }
 
-    auto operator==(const Base &polygon) -> bool
+    auto operator==(const Base& polygon) -> bool
     {
         return equal(polygon);
     }
@@ -414,9 +416,9 @@ public:
     // Rectangle: Points (x1,y1),(x2,y2),(x3,y3),(x4,y4)
     // Returns vertices.
     auto setup(Point first, Point second, Point third, Point fourth)
-    -> std::vector<Point>
+        -> std::vector<Point>
     {
-        Base::setup({first, second, third, fourth});
+        Base::setup({ first, second, third, fourth });
         label = "Rectangle";
 
         return points();
@@ -425,10 +427,10 @@ public:
     // Rectangle : Point (x,y), width and heigth.
     // Returns vertices.
     auto setup(Point origin, double width, double heigth)
-    -> std::vector<Point>
+        -> std::vector<Point>
     {
         return setup(origin, origin + Point(width, 0),
-                     origin + Point(width, heigth), origin + Point(0, heigth));
+            origin + Point(width, heigth), origin + Point(0, heigth));
     }
 };
 
@@ -436,11 +438,11 @@ public:
 class SVG {
 
 public:
-    static constexpr const char *WHITE = "#FFFFFF";
-    static constexpr const char *BLACK = "#000000";
-    static constexpr const char *RED = "#FF0000";
-    static constexpr const char *GREEN = "#00FF00";
-    static constexpr const char *BLUE = "#0000FF";
+    static constexpr const char* WHITE = "#FFFFFF";
+    static constexpr const char* BLACK = "#000000";
+    static constexpr const char* RED = "#FF0000";
+    static constexpr const char* GREEN = "#00FF00";
+    static constexpr const char* BLUE = "#0000FF";
 
     // Metadata setup.
     // creator             : String with the name of the creator or developer,
@@ -455,8 +457,11 @@ public:
 
         Metadata() = default;
         Metadata(std::string creator, std::string title, std::string publisher)
-            : creator{std::move(creator)}, title{std::move(title)},
-              publisherAgentTitle{std::move(publisher)} {}
+            : creator { std::move(creator) }
+            , title { std::move(title) }
+            , publisherAgentTitle { std::move(publisher) }
+        {
+        }
     };
 
     // Drawing setup.
@@ -467,33 +472,40 @@ public:
     // fillOpacity   : Fill opacity or alpha value from 0 to 255.
     // strokeOpacity : Stroke opacity or alpha value from 0 to 255.
     struct Style {
-        std::string name{"Shape"}, fill{WHITE}, stroke{BLACK};
-        double strokeWidth{1.0};
-        double fillOpacity{255.0},
-               strokeOpacity{255.0}; // 0.0 = 0%; 255 = 1.0 = 100%
+        std::string name { "Shape" }, fill { WHITE }, stroke { BLACK };
+        double strokeWidth { 1.0 };
+        double fillOpacity { 255.0 },
+            strokeOpacity { 255.0 }; // 0.0 = 0%; 255 = 1.0 = 100%
 
         Style() = default;
 
         Style(std::string name, std::string fill, std::string stroke,
-              double strokeWidth, double fillOpacity, double strokeOpacity)
-            : name{std::move(name)}, fill{std::move(fill)},
-              stroke{std::move(stroke)}, strokeWidth{strokeWidth},
-              fillOpacity{fillOpacity}, strokeOpacity{strokeOpacity} {}
+            double strokeWidth, double fillOpacity, double strokeOpacity)
+            : name { std::move(name) }
+            , fill { std::move(fill) }
+            , stroke { std::move(stroke) }
+            , strokeWidth { strokeWidth }
+            , fillOpacity { fillOpacity }
+            , strokeOpacity { strokeOpacity }
+        {
+        }
     };
 
     // Polygon and Polyline.
     // points : Points vector (x,y).
     struct NormalShape : Style {
-        std::vector<Point> points{};
+        std::vector<Point> points {};
 
         NormalShape() = default;
 
         NormalShape(std::string name, std::string fill, std::string stroke,
-                    double strokeWidth, double fillOpacity, double strokeOpacity,
-                    std::vector<Point> points)
+            double strokeWidth, double fillOpacity, double strokeOpacity,
+            std::vector<Point> points)
             : Style(std::move(name), std::move(fill), std::move(stroke),
-                    strokeWidth, fillOpacity, strokeOpacity),
-              points{std::move(points)} {}
+                  strokeWidth, fillOpacity, strokeOpacity)
+            , points { std::move(points) }
+        {
+        }
     };
 
     // Formats values (Red, Green, Blue) to "#RRGGBB" hexadecimal.
@@ -510,34 +522,27 @@ public:
         }
 
         const std::string opening = id.empty()
-                                    ? "<g>\n"
-                                    : std::format("<g id=\"{}\" >\n", id);
+            ? "<g>\n"
+            : std::format("<g id=\"{}\" >\n", id);
 
         return opening + std::string(elements) + "</g>\n";
     }
 
 private:
     // Validates and formats entries.
-    static auto style(Style style, const std::string &name) -> std::string
+    static auto style(Style style, const std::string& name) -> std::string
     {
         style.name = name.empty() ? "Shape" : name;
         style.stroke = style.stroke.empty() ? "#000000" : style.stroke;
-        style.fillOpacity =
-            style.fillOpacity < 0 ? 0 : std::min(style.fillOpacity / 255, 1.0);
-        style.strokeOpacity =
-            style.strokeOpacity < 0 ? 0 : std::min(style.strokeOpacity / 255, 1.0);
+        style.fillOpacity = style.fillOpacity < 0 ? 0 : std::min(style.fillOpacity / 255, 1.0);
+        style.strokeOpacity = style.strokeOpacity < 0 ? 0 : std::min(style.strokeOpacity / 255, 1.0);
 
-        return {"id=\"" + style.name + "\"\nstyle=\"" +
-                "opacity:" + Text::trimZeros(style.fillOpacity) +
-                ";fill:" + style.fill + ";stroke:" + style.stroke +
-                ";stroke-width:" + Text::trimZeros(style.strokeWidth) +
-                ";stroke-opacity:" + Text::trimZeros(style.strokeOpacity) +
-                ";stroke-linejoin:round;stroke-linecap:round\"\n"};
+        return { "id=\"" + style.name + "\"\nstyle=\"" + "opacity:" + Text::trimZeros(style.fillOpacity) + ";fill:" + style.fill + ";stroke:" + style.stroke + ";stroke-width:" + Text::trimZeros(style.strokeWidth) + ";stroke-opacity:" + Text::trimZeros(style.strokeOpacity) + ";stroke-linejoin:round;stroke-linecap:round\"\n" };
     }
 
 public:
     // Return SVG: <polyline ... />
-    static auto polyline(const NormalShape &shape) -> std::string
+    static auto polyline(const NormalShape& shape) -> std::string
     {
 
         if (shape.points.empty()) {
@@ -545,20 +550,19 @@ public:
         }
 
         std::string values;
-        for (const auto &point : shape.points) {
+        for (const auto& point : shape.points) {
             values += point.toStr(true) + " ";
         }
 
-        return {"<polyline\n" + style(shape, shape.name) + "points=\"" + values +
-                "\" />\n"};
+        return { "<polyline\n" + style(shape, shape.name) + "points=\"" + values + "\" />\n" };
     }
 
     // Return full SVG.
-    static auto svg(int width, int height, const std::string &xml,
-                    Metadata metadata) -> std::string
+    static auto svg(int width, int height, const std::string& xml,
+        Metadata metadata) -> std::string
     {
 
-        const auto today = std::chrono::year_month_day{
+        const auto today = std::chrono::year_month_day {
             std::chrono::floor<std::chrono::days>(
                 std::chrono::system_clock::now())
         };
@@ -576,41 +580,13 @@ public:
             "xmlns:svg=\"http://www.w3.org/2000/svg\"\n"
             "xmlns=\"http://www.w3.org/2000/svg\"\n"
             "xmlns:xlink=\"http://www.w3.org/1999/xlink\"\n"
-            "width=\"" +
-            std::to_string(width) + "\"\n" + "height=\"" + std::to_string(height) +
-            "\"\n" + "viewBox= \"0 0 " + std::to_string(width) + " " +
-            std::to_string(height) + "\"\n" + "version=\"1.1\"\n" +
-            "id=\"svg8\">\n" + "<title\n" + "id=\"title1\">" + metadata.title +
-            "</title>\n" + "<defs\n" + "id=\"defs1\" />\n" + "<metadata\n" +
-            "id=\"metadata1\">\n" + "<rdf:RDF>\n" + "<cc:Work\n" +
-            "rdf:about=\"\">\n" + "<dc:format>image/svg+xml</dc:format>\n" +
-            "<dc:type\n" +
-            "rdf:resource=\"http://purl.org/dc/dcmitype/StillImage\" />\n" +
-            "<dc:title>" + metadata.title + "</dc:title>\n" + "<dc:date>" +
-            metadata.date + "</dc:date>\n" + "<dc:publisher>\n" + "<cc:Agent>\n" +
-            "<dc:title>" + metadata.publisherAgentTitle + "</dc:title>\n" +
-            "</cc:Agent>\n" + "</dc:publisher>\n" + "<dc:subject>\n" +
-            "<rdf:Bag>\n" + "<rdf:li></rdf:li>\n" + "<rdf:li></rdf:li>\n" +
-            "<rdf:li></rdf:li>\n" + "<rdf:li></rdf:li>\n" + "</rdf:Bag>\n" +
-            "</dc:subject>\n" + "<dc:creator>\n" + "<cc:Agent>\n" + "<dc:title>" +
-            metadata.creator + "</dc:title>\n" + "</cc:Agent>\n" +
-            "</dc:creator>\n" + "<cc:license\n" +
-            "rdf:resource=\"http://creativecommons.org/publicdomain/zero/1.0/\" "
-            "/>\n" +
-            "<dc:description>SVG created automatically by algorithm in "
-            "C++.</dc:description>\n" +
-            "</cc:Work>\n" + "<cc:License\n" +
-            "rdf:about=\"http://creativecommons.org/publicdomain/zero/1.0/\">\n" +
-            "<cc:permits\n" +
-            "rdf:resource=\"http://creativecommons.org/ns#Reproduction\" />\n" +
-            "<cc:permits\n" +
-            "rdf:resource=\"http://creativecommons.org/ns#Distribution\" />\n" +
-            "<cc:permits\n" +
-            "rdf:resource=\"http://creativecommons.org/ns#DerivativeWorks\" />\n" +
-            "</cc:License>\n" + "</rdf:RDF>\n" + "</metadata>\n" +
-            "<!--      Created in C++ algorithm       -->\n" +
-            "<!-- Attention: do not modify this code. -->\n" + "\n" + xml + "\n" +
-            "<!-- Attention: do not modify this code. -->\n" + "</svg>"};
+            "width=\""
+            + std::to_string(width) + "\"\n" + "height=\"" + std::to_string(height) + "\"\n" + "viewBox= \"0 0 " + std::to_string(width) + " " + std::to_string(height) + "\"\n" + "version=\"1.1\"\n" + "id=\"svg8\">\n" + "<title\n" + "id=\"title1\">" + metadata.title + "</title>\n" + "<defs\n" + "id=\"defs1\" />\n" + "<metadata\n" + "id=\"metadata1\">\n" + "<rdf:RDF>\n" + "<cc:Work\n" + "rdf:about=\"\">\n" + "<dc:format>image/svg+xml</dc:format>\n" + "<dc:type\n" + "rdf:resource=\"http://purl.org/dc/dcmitype/StillImage\" />\n" + "<dc:title>" + metadata.title + "</dc:title>\n" + "<dc:date>" + metadata.date + "</dc:date>\n" + "<dc:publisher>\n" + "<cc:Agent>\n" + "<dc:title>" + metadata.publisherAgentTitle + "</dc:title>\n" + "</cc:Agent>\n" + "</dc:publisher>\n" + "<dc:subject>\n" + "<rdf:Bag>\n" + "<rdf:li></rdf:li>\n" + "<rdf:li></rdf:li>\n" + "<rdf:li></rdf:li>\n" + "<rdf:li></rdf:li>\n" + "</rdf:Bag>\n" + "</dc:subject>\n" + "<dc:creator>\n" + "<cc:Agent>\n" + "<dc:title>" + metadata.creator + "</dc:title>\n" + "</cc:Agent>\n" + "</dc:creator>\n" + "<cc:license\n" + "rdf:resource=\"http://creativecommons.org/publicdomain/zero/1.0/\" "
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             "/>\n"
+            + "<dc:description>SVG created automatically by algorithm in "
+              "C++.</dc:description>\n"
+            + "</cc:Work>\n" + "<cc:License\n" + "rdf:about=\"http://creativecommons.org/publicdomain/zero/1.0/\">\n" + "<cc:permits\n" + "rdf:resource=\"http://creativecommons.org/ns#Reproduction\" />\n" + "<cc:permits\n" + "rdf:resource=\"http://creativecommons.org/ns#Distribution\" />\n" + "<cc:permits\n" + "rdf:resource=\"http://creativecommons.org/ns#DerivativeWorks\" />\n" + "</cc:License>\n" + "</rdf:RDF>\n" + "</metadata>\n" + "<!--      Created in C++ algorithm       -->\n" + "<!-- Attention: do not modify this code. -->\n" + "\n" + xml + "\n" + "<!-- Attention: do not modify this code. -->\n" + "</svg>"
+        };
     }
 };
 
@@ -619,17 +595,24 @@ class Color {
 
 public:
     struct RGBA {
-        int R{0}, G{0}, B{0}, A{0};
+        int R { 0 }, G { 0 }, B { 0 }, A { 0 };
 
         RGBA() = default;
 
-        RGBA(int r, int g, int b, int a) : R{r}, G{g}, B{b}, A{a}
+        RGBA(int r, int g, int b, int a)
+            : R { r }
+            , G { g }
+            , B { b }
+            , A { a }
         {
             clamp();
         };
 
         explicit RGBA(std::array<int, 4> rgba)
-            : R{rgba[0]}, G{rgba[1]}, B{rgba[2]}, A{rgba[3]}
+            : R { rgba[0] }
+            , G { rgba[1] }
+            , B { rgba[2] }
+            , A { rgba[3] }
         {
             clamp();
         };
@@ -651,8 +634,7 @@ public:
 
         auto toStr(bool alpha = true) const -> std::string
         {
-            return {std::to_string(R) + "," + std::to_string(G) + "," +
-                    std::to_string(B) + (alpha ? "," + std::to_string(A) : "")};
+            return { std::to_string(R) + "," + std::to_string(G) + "," + std::to_string(B) + (alpha ? "," + std::to_string(A) : "") };
         }
 
     private:

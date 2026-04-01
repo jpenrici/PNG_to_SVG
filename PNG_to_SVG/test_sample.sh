@@ -10,6 +10,7 @@ cmake -B $BUILD_DIR
 if [[ -d $BUILD_DIR ]]; then
     cmake --build $BUILD_DIR
     if [[ -f $EXE_PATH ]]; then
+        echo ""
         cd $BUILD_DIR
         ./$EXE "--example"
     fi
