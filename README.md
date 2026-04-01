@@ -17,7 +17,8 @@ PNG_to_SVG/
 │   └── main.cpp
 ├── images/
 │   └── test.png
-└── CMakeLists.txt
+├── CMakeLists.txt
+└── test_sample.sh
 ```
 
 ---
